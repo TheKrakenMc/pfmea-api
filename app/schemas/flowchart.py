@@ -58,3 +58,16 @@ class FlowchartRead(FlowchartBase):
     created_at: datetime
     updated_at: datetime
     steps: List[FlowchartStepRead] = []
+
+
+# ---------------------------------------------------------------------------
+# Bulk step reorder / replace
+# ---------------------------------------------------------------------------
+
+class FlowchartStepsReorder(BaseModel):
+    """Payload for PUT /flowcharts/{id}/steps — replaces all steps atomically."""
+
+    steps: List[FlowchartStepCreate] = Field(
+        ...,
+        description="Ordered list of steps that will replace the current ones",
+    )

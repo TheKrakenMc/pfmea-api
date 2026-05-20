@@ -7,6 +7,7 @@ engine = create_async_engine(
     settings.async_database_url,
     echo=settings.DEBUG,
     pool_pre_ping=True,
+    connect_args={"server_settings": {"search_path": "pfmea"}},
 )
 
 AsyncSessionLocal = async_sessionmaker(

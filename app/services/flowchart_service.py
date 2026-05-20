@@ -200,3 +200,66 @@ async def add_step(
 
     await db.refresh(step)
     return step
+
+
+async def replace_steps(
+    db: AsyncSession,
+    flowchart_id: int,
+    steps_data: list[FlowchartStepCreate],
+) -> Flowchart:
+    """Atomically replace all steps for a flowchart with the given ordered list.
+
+    Used by the frontend auto-save after drag-and-drop reordering.
+
+    Validates:
+    - ``flowchart_id`` exists.
+    - ``step_number`` values are unique within the batch.
+    - Every ``technology_id`` referenced exists.
+    """
+    # 1) Validate parent flowchart
+    flowchart = await _ensure_flowchart_exists(db, flowchart_id)
+
+    # 2) Validate step-number uniqueness within the request payload
+    step_numbers = [s.step_number for s in steps_data]
+    if len(step_numbers) != len(set(step_numbers)):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Números de paso duplicados en la solicitud.",
+        )
+
+    # 3) Validate every referenced technology
+    for step_data in steps_data:
+        if step_data.technology_id is not None:
+            await _ensure_technology_exists(db, step_data.technology_id)
+
+    # 4) Delete existing steps
+    from sqlalchemy import delete
+
+    await db.execute(
+        delete(FlowchartStep).where(FlowchartStep.flowchart_id == flowchart_id)
+    )
+
+    # 5) Insert new steps in order
+    for step_data in steps_data:
+        db.add(
+            FlowchartStep(
+                flowchart_id=flowchart_id,
+                technology_id=step_data.technology_id,
+                step_number=step_data.step_number,
+                custom_description=step_data.custom_description,
+            )
+        )
+
+    try:
+        await db.flush()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Conflicto de integridad al reemplazar pasos en el flujo {flowchart_id}.",
+        )
+
+    # 6) Refresh and return the flowchart with new steps
+    await db.refresh(flowchart)
+    # Re-fetch with eager loading
+    return await _ensure_flowchart_exists(db, flowchart_id)

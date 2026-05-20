@@ -1,0 +1,25 @@
+# --- Etapa 1: Construcción (SDK completo) ---
+FROM ://microsoft.com AS build
+WORKDIR /app
+# Instalar dependencias de globalización requeridas por Alpine Linux
+RUN apk add --no-cache icu-libs
+ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false
+# Copiar archivos del proyecto y restaurar dependencias (Aprovecha la caché de Docker)
+COPY *.csproj ./
+RUN dotnet restore
+# Copiar el resto del código y compilar en modo Release optimizado
+COPY . ./
+RUN dotnet publish -c Release -o out --no-restore
+# --- Etapa 2: Ejecución (Runtime ultra ligero) ---
+FROM ://microsoft.com AS runtime
+WORKDIR /app
+# Instalar librerías de fuentes y gráficos necesarias para que QuestPDF dibuje fuentes tipográficas en Alpine
+RUN apk add --no-cache fontconfig ttf-dejavu icu-libs
+ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false
+# Copiar solo los binarios compilados de la etapa anterior
+COPY --from=build /app/out .
+# Exponer el puerto interno del microservicio
+EXPOSE 5000
+ENV ASPNETCORE_URLS=http://+:5000
+# Ejecutar la aplicación
+ENTRYPOINT ["dotnet", "TuProyectoPdf.dll"]
