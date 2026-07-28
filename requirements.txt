@@ -7,10 +7,12 @@ pydantic-settings>=2.0
 python-dotenv>=1.0
 uvicorn[standard]>=0.30.0
 python-jose[cryptography]
-passlib[bcrypt]
+bcrypt
+aiosmtplib
 python-multipart
 slowapi
 pytest
 pytest-asyncio
 httpx
 aiosqlite
+redis[asyncio]

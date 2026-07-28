@@ -27,7 +27,7 @@ async def test_rate_limiting(client: AsyncClient, test_user):
     for _ in range(6):
         res = await client.post(
             "/api/v1/auth/login",
-            json={"email": "nonexistent@test.com"}
+            json={"email": "nonexistent@test.com", "password": "anypassword"}
         )
         responses.append(res.status_code)
     

@@ -46,6 +46,64 @@ def verify_access_token(token: str) -> Dict[str, Any]:
         raise ValueError(f"Invalid token: {str(e)}")
 
 
+def create_refresh_token(
+    subject: str | Any, expires_delta: Optional[timedelta] = None
+) -> str:
+    """Create a JWT refresh token valid for 7 days."""
+    if expires_delta:
+        expire = datetime.now(timezone.utc) + expires_delta
+    else:
+        expire = datetime.now(timezone.utc) + timedelta(days=7)
+        
+    to_encode = {"exp": expire, "sub": str(subject), "type": "refresh"}
+    
+    encoded_jwt = jwt.encode(
+        to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
+    )
+    return encoded_jwt
+
+
+def verify_refresh_token(token: str) -> Dict[str, Any]:
+    """Verify a JWT refresh token and return its payload."""
+    try:
+        payload = jwt.decode(
+            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
+        )
+        if payload.get("type") != "refresh":
+            raise ValueError("Token is not a refresh token")
+        return payload
+    except JWTError as e:
+        raise ValueError(f"Invalid refresh token: {str(e)}")
+
+
+def create_verification_token(email: str, expires_delta: Optional[timedelta] = None) -> str:
+    """Create a JWT verification token."""
+    if expires_delta:
+        expire = datetime.now(timezone.utc) + expires_delta
+    else:
+        expire = datetime.now(timezone.utc) + timedelta(hours=24)
+        
+    to_encode = {"exp": expire, "sub": email, "type": "verification"}
+    
+    encoded_jwt = jwt.encode(
+        to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
+    )
+    return encoded_jwt
+
+
+def verify_verification_token(token: str) -> str:
+    """Verify a JWT verification token and return the email."""
+    try:
+        payload = jwt.decode(
+            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
+        )
+        if payload.get("type") != "verification":
+            raise ValueError("Token is not a verification token")
+        return payload.get("sub")
+    except JWTError as e:
+        raise ValueError(f"Invalid verification token: {str(e)}")
+
+
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """Middleware to add essential security headers for TISAX compliance."""
     

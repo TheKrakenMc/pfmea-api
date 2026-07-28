@@ -10,7 +10,7 @@ from app.models.base import Base
 if TYPE_CHECKING:
     from app.models.flowchart import Flowchart
     from app.models.technology import Technology
-
+    from app.models.machinery import Machinery
 
 class FlowchartStep(Base):
     """A single step within a process flowchart."""
@@ -27,15 +27,24 @@ class FlowchartStep(Base):
     technology_id: Mapped[Optional[int]] = mapped_column(
         ForeignKey("technologies.id")
     )
+    machinery_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("machinery.id")
+    )
     step_number: Mapped[Optional[int]] = mapped_column(
         comment="e.g., 10, 20, 30. Used for ordering"
     )
-    custom_description: Mapped[Optional[str]] = mapped_column(
-        String, comment="Specific detail for this product step"
+    symbol_type: Mapped[str] = mapped_column(
+        String, nullable=False, default="operation", server_default="operation"
     )
+    responsible_department: Mapped[str] = mapped_column(
+        String, nullable=False, default="Producción"
+    )
+    custom_description: Mapped[Optional[str]] = mapped_column(String)
+    critical_flag: Mapped[str] = mapped_column(String, nullable=False, default="none", server_default="none")
 
     # Relationships
     flowchart: Mapped[Optional["Flowchart"]] = relationship(back_populates="steps")
     technology: Mapped[Optional["Technology"]] = relationship(
         back_populates="flowchart_steps"
     )
+    machinery: Mapped[Optional["Machinery"]] = relationship()
