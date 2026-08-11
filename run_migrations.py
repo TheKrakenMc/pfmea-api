@@ -8,7 +8,7 @@ def main():
     # 1. Load environment variables
     load_dotenv()
     
-    database_url = os.getenv("DATABASE_URL")
+    database_url = os.getenv("DATABASE_URL", "").strip().strip('"').strip("'")
     if not database_url:
         print("Error: DATABASE_URL not found in .env file.")
         sys.exit(1)
@@ -16,8 +16,8 @@ def main():
     print(f"Original DATABASE_URL from .env: {database_url}")
     
     # 2. Clean DATABASE_URL for psycopg2 compatibility
-    # psycopg2 doesn't understand the 'postgresql+psycopg2://' scheme, it expects 'postgresql://' or 'postgres://'
-    cleaned_url = database_url.replace("postgresql+psycopg2://", "postgresql://")
+    # psycopg2 doesn't understand the '+psycopg2' or '+asyncpg' schemes, it expects 'postgresql://'
+    cleaned_url = database_url.replace("postgresql+psycopg2://", "postgresql://").replace("postgresql+asyncpg://", "postgresql://")
     
     print(f"Connecting to database...")
     try:
