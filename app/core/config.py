@@ -35,7 +35,14 @@ class Settings(BaseSettings):
     @property
     def async_database_url(self) -> str:
         """Replace sync driver with asyncpg for async sessions."""
-        url = self.DATABASE_URL.replace("psycopg2", "asyncpg")
+        url = self.DATABASE_URL
+        if url.startswith("postgres://"):
+            url = url.replace("postgres://", "postgresql+asyncpg://", 1)
+        elif url.startswith("postgresql://"):
+            url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        elif url.startswith("postgresql+psycopg2://"):
+            url = url.replace("postgresql+psycopg2://", "postgresql+asyncpg://", 1)
+            
         if "?options=" in url:
             url = url.split("?options=")[0]
         return url
