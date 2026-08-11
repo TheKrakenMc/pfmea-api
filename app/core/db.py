@@ -23,7 +23,11 @@ engine = create_async_engine(
     settings.async_database_url,
     echo=settings.DEBUG,
     pool_pre_ping=True,
-    connect_args={"server_settings": {"search_path": search_path}},
+    connect_args={
+        "server_settings": {"search_path": search_path},
+        "statement_cache_size": 0,
+        "prepared_statement_cache_size": 0,
+    },
 )
 
 AsyncSessionLocal = async_sessionmaker(
