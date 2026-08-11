@@ -2,3 +2,5 @@
 -- El contenido de este script provocaba un error porque intentaba referenciar la tabla 'measurement_units' 
 -- antes de que 'V4_019_measurement_units.sql' la creara (por orden alfabético 'f' se ejecuta antes que 'm').
 -- Todo lo que hacía este script ya está incluido en 'V4_019_measurement_units.sql'.
+
+SELECT 1;
