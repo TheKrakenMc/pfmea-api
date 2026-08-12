@@ -61,14 +61,14 @@ async def update_technology(
     return await technology_service.update_technology(db, tech_id, payload, current_user.id)
 
 
-@router.delete("/{tech_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{tech_id}", response_model=TechnologyRead)
 async def delete_technology(
     tech_id: int,
     db: AsyncSession = Depends(get_db),
     current_user: CurrentUser = Depends(_modifier_roles),
 ):
     """Soft delete a technology. Validates dependencies before deleting."""
-    await technology_service.delete_technology(db, tech_id, current_user.id)
+    return await technology_service.delete_technology(db, tech_id, current_user.id)
 
 
 @router.get("/{tech_id}/impact")

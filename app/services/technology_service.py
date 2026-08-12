@@ -87,8 +87,9 @@ async def create_technology(
 
     db.add(db_tech)
     await db.commit()
-    await db.refresh(db_tech)
-    return db_tech
+    
+    # Reload with relationships to prevent MissingGreenlet in response serialization
+    return await get_technology(db, db_tech.id)
 
 
 async def update_technology(
@@ -111,8 +112,9 @@ async def update_technology(
 
     db_tech.updated_by = user_id
     await db.commit()
-    await db.refresh(db_tech)
-    return db_tech
+    
+    # Reload with relationships to prevent MissingGreenlet in response serialization
+    return await get_technology(db, tech_id)
 
 
 async def check_technology_dependencies(
@@ -137,7 +139,7 @@ async def check_technology_dependencies(
 
 async def delete_technology(
     db: AsyncSession, tech_id: int, user_id: int
-) -> None:
+) -> Technology:
     db_tech = await get_technology(db, tech_id)
 
     fc_count, prod_count = await check_technology_dependencies(db, tech_id)
@@ -155,6 +157,7 @@ async def delete_technology(
     db_tech.is_active = False
     db_tech.updated_by = user_id
     await db.commit()
+    return db_tech
 
 
 
