@@ -578,33 +578,19 @@ async def send_email(to_email: str, subject: str, subtitle: str, body_html: str,
     msg.attach(email.mime.text.MIMEText(text_fallback, "plain", "utf-8"))
     msg.attach(email.mime.text.MIMEText(full_html, "html", "utf-8"))
     
-    try:
-        # 4. Connect and send asynchronously using aiosmtplib
-        # Standard TLS connection or STARTTLS depending on Office 365 port 587
-        smtp_client = aiosmtplib.SMTP(
-            hostname=settings.SMTP_HOST,
-            port=settings.SMTP_PORT,
-            start_tls=True,  # TLS explícito / STARTTLS requerido por Microsoft
-            use_tls=False # STARTTLS requires connecting without raw TLS first
-        )
-        
-        await smtp_client.connect()
-        await smtp_client.login(settings.SMTP_USERNAME, settings.SMTP_PASSWORD)
-        await smtp_client.send_message(msg)
-        await smtp_client.quit()
-        
-        logger.info(f"Notification email successfully sent to {to_email}")
-        return True
-    except Exception as e:
-        logger.error(f"Failed to send email to {to_email}: {e}")
-        # Log to console so developer doesn't lose the token
-        print("\n" + "="*80)
-        print(f"⚠️ [SMTP DELIVERY FAILED - NOTIFICATION PRINT]")
-        print(f"TO: {to_email}")
-        print(f"SUBJECT: {subject}")
-        print(f"BODY:\n{body_html.strip()}")
-        print("="*80 + "\n")
-        return False
+    import asyncio
+    
+    # 4. Modo demostrativo: Simulamos un retraso de 10 segundos y luego imprimimos en consola
+    await asyncio.sleep(10)
+    
+    print("\n" + "="*80)
+    print(f"📧 [NOTIFICATION DEMO MODE - DELAYED 10s]")
+    print(f"TO: {to_email}")
+    print(f"SUBJECT: {subject}")
+    print(f"BODY:\n{body_html.strip()}")
+    print("="*80 + "\n")
+    
+    return True
 
 async def send_otp_email(to_email: str, otp_code: str, lang: str = "en") -> bool:
     """

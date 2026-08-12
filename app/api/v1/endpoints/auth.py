@@ -225,7 +225,7 @@ async def verify_otp(
         value=f"Bearer {access_token}",
         httponly=True,
         secure=is_secure,
-        samesite="strict",
+        samesite="none",
         max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         path="/"
     )
@@ -236,7 +236,7 @@ async def verify_otp(
         value=refresh_token,
         httponly=True,
         secure=is_secure,
-        samesite="strict",
+        samesite="none",
         max_age=7 * 24 * 60 * 60, # 7 days
         path="/"
     )
@@ -307,7 +307,7 @@ async def refresh_token(
         value=f"Bearer {new_access_token}",
         httponly=True,
         secure=is_secure,
-        samesite="strict",
+        samesite="none",
         max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         path="/"
     )
@@ -317,7 +317,7 @@ async def refresh_token(
         value=new_refresh_token,
         httponly=True,
         secure=is_secure,
-        samesite="strict",
+        samesite="none",
         max_age=7 * 24 * 60 * 60,
         path="/"
     )
@@ -336,7 +336,7 @@ async def logout(response: Response) -> Any:
         key="access_token",
         httponly=True,
         secure=is_secure,
-        samesite="strict",
+        samesite="none",
         path="/"
     )
     
@@ -344,7 +344,7 @@ async def logout(response: Response) -> Any:
         key="refresh_token",
         httponly=True,
         secure=is_secure,
-        samesite="strict",
+        samesite="none",
         path="/"
     )
     
