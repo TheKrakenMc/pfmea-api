@@ -537,9 +537,11 @@ async def send_archive_notification_email(
     return all_succeeded
 
 
+import resend
+
 async def send_email(to_email: str, subject: str, subtitle: str, body_html: str, lang: str = "en") -> bool:
     """
-    Asynchronously send an email using aiosmtplib.
+    Asynchronously send an email using Resend API.
     Includes a fallback that prints to console for easy local testing.
     """
     settings = get_settings()
@@ -555,9 +557,9 @@ async def send_email(to_email: str, subject: str, subtitle: str, body_html: str,
         footer_conf=t["footer_conf"]
     )
     
-    # 2. Check if SMTP configuration exists, else fall back to console print (extremely handy for local dev!)
-    if not settings.SMTP_USERNAME or not settings.SMTP_PASSWORD or settings.SMTP_PASSWORD == "temp_secure_smtp_password_change_me":
-        logger.warning("SMTP credentials not configured. Falling back to console notification print.")
+    # 2. Check if Resend API key exists, else fall back to console print
+    if not settings.RESEND_API_KEY:
+        logger.warning("RESEND_API_KEY not configured. Falling back to console notification print.")
         print("\n" + "="*80)
         print(f"📧 [NOTIFICATION MAIL FALLBACK]")
         print(f"TO: {to_email}")
@@ -567,30 +569,30 @@ async def send_email(to_email: str, subject: str, subtitle: str, body_html: str,
         print("="*80 + "\n")
         return True
 
-    # 3. Build email message
-    msg = email.mime.multipart.MIMEMultipart("alternative")
-    msg["Subject"] = subject
-    msg["From"] = f"{settings.SMTP_FROM_NAME} <{settings.SMTP_FROM_EMAIL}>"
-    msg["To"] = to_email
+    # 3. Send using Resend SDK
+    resend.api_key = settings.RESEND_API_KEY
     
-    # Text fallback
-    text_fallback = f"{subtitle}\n\n{t['fallback_text']}"
-    msg.attach(email.mime.text.MIMEText(text_fallback, "plain", "utf-8"))
-    msg.attach(email.mime.text.MIMEText(full_html, "html", "utf-8"))
-    
-    import asyncio
-    
-    # 4. Modo demostrativo: Simulamos un retraso de 10 segundos y luego imprimimos en consola
-    await asyncio.sleep(10)
-    
-    print("\n" + "="*80)
-    print(f"📧 [NOTIFICATION DEMO MODE - DELAYED 10s]")
-    print(f"TO: {to_email}")
-    print(f"SUBJECT: {subject}")
-    print(f"BODY:\n{body_html.strip()}")
-    print("="*80 + "\n")
-    
-    return True
+    try:
+        params = {
+            "from": f"{settings.SMTP_FROM_NAME} <{settings.SMTP_FROM_EMAIL}>",
+            "to": [to_email],
+            "subject": subject,
+            "html": full_html,
+        }
+        
+        email_response = resend.Emails.send(params)
+        logger.info(f"Notification email successfully sent to {to_email} via Resend.")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to send email to {to_email} via Resend: {e}")
+        # Log to console so developer doesn't lose the token
+        print("\n" + "="*80)
+        print(f"⚠️ [RESEND DELIVERY FAILED - NOTIFICATION PRINT]")
+        print(f"TO: {to_email}")
+        print(f"SUBJECT: {subject}")
+        print(f"BODY:\n{body_html.strip()}")
+        print("="*80 + "\n")
+        return False
 
 async def send_otp_email(to_email: str, otp_code: str, lang: str = "en") -> bool:
     """

@@ -23,12 +23,9 @@ class Settings(BaseSettings):
     # Redis Cache
     REDIS_URL: str = "redis://localhost:6379/0"
 
-    # SMTP Configuration
-    SMTP_HOST: str = "mail.office365.com"
-    SMTP_PORT: int = 587
-    SMTP_USERNAME: str = ""
-    SMTP_PASSWORD: str = ""
-    SMTP_FROM_EMAIL: str = ""
+    # Email Configuration (Resend)
+    RESEND_API_KEY: str = ""
+    SMTP_FROM_EMAIL: str = "onboarding@resend.dev"
     SMTP_FROM_NAME: str = "APG Puebla - Notificaciones de Planta"
 
     # Async driver override (used at runtime)
