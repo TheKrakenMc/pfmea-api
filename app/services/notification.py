@@ -1,8 +1,4 @@
 import logging
-import email.mime.text
-import email.mime.multipart
-import aiosmtplib
-
 from app.core.config import get_settings
 
 logger = logging.getLogger(__name__)
