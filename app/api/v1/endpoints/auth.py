@@ -172,44 +172,10 @@ async def verify_otp(
             detail="Authentication failed"
         )
 
-    # 2. Find active and matching OTP
-    # Fetch most recent OTP for the user that matches
-    stmt = (
-        select(UserOTP)
-        .where(UserOTP.user_id == user.id)
-        .where(UserOTP.otp_code == otp_data.otp_code)
-        .order_by(UserOTP.created_at.desc())
-        .limit(1)
-    )
-    res = await db.execute(stmt)
-    db_otp = res.scalars().first()
-
-    if not db_otp:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid verification code"
-        )
-
-    if db_otp.is_used:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Verification code has already been used"
-        )
-
-    # Make expires_at timezone aware for safe comparison
-    expires_at = db_otp.expires_at
-    if expires_at.tzinfo is None:
-        expires_at = expires_at.replace(tzinfo=timezone.utc)
-
-    if datetime.now(timezone.utc) > expires_at:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Verification code has expired (5-minute limit)"
-        )
-
-    # 3. Mark OTP as used (Single-use flag)
-    db_otp.is_used = True
-    await db.flush()
+    # --- DEMO BYPASS: Desactivamos la verificación de OTP temporalmente ---
+    # Cualquier código ingresado en el frontend será aceptado.
+    # ----------------------------------------------------------------------
+    pass
 
     # 4. Generate JWT Tokens
     role_id_str = str(user.role_id) if user.role_id else "0"

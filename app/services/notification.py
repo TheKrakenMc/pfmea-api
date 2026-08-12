@@ -533,6 +533,7 @@ async def send_archive_notification_email(
     return all_succeeded
 
 
+# pyrefly: ignore [missing-import]
 import resend
 
 async def send_email(to_email: str, subject: str, subtitle: str, body_html: str, lang: str = "en") -> bool:

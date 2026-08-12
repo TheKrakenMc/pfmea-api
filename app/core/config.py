@@ -9,8 +9,9 @@ class Settings(BaseSettings):
 
     ENVIRONMENT: str = "production"
     
-    # CORS
+    # CORS & URLs
     ALLOWED_ORIGINS: Union[str, List[str]] = ["*"]
+    FRONTEND_URL: str = "http://localhost:5173"
     
     # Security
     SECRET_KEY: str = "your-super-secret-key-change-in-production"

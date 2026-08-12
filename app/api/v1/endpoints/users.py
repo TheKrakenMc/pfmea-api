@@ -341,8 +341,7 @@ async def create_user_admin(
 
     # Generate verification token and send email
     token = create_verification_token(new_user.email)
-    allowed_origins = [o for o in settings.get_allowed_origins if o != "*"]
-    frontend_url = allowed_origins[0] if allowed_origins else "http://localhost:5173"
+    frontend_url = settings.FRONTEND_URL
     verification_link = f"{frontend_url.strip('/')}/verify-email?token={token}"
     
     # Get department name for the email
@@ -606,8 +605,7 @@ async def resend_verification_admin(
     await db.flush()
 
     token = create_verification_token(user.email)
-    allowed_origins = [o for o in settings.get_allowed_origins if o != "*"]
-    frontend_url = allowed_origins[0] if allowed_origins else "http://localhost:5173"
+    frontend_url = settings.FRONTEND_URL
     verification_link = f"{frontend_url.strip('/')}/verify-email?token={token}"
 
     import asyncio
