@@ -88,6 +88,7 @@ class FlowchartUpdate(BaseModel):
     title: Optional[str] = Field(None, min_length=1, max_length=255)
     confidentiality_level: Optional[str] = None
     status: Optional[str] = Field(None, pattern=r"^(Draft|In Review|Approved|Archived)$")
+    flowchart_code: Optional[str] = Field(None, min_length=1, max_length=255)
     customer_name: Optional[str] = Field(None, min_length=1, max_length=255)
     part_number: Optional[str] = Field(None, min_length=1, max_length=255)
     product_description: Optional[str] = None

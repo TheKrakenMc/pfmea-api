@@ -45,6 +45,7 @@ async def get_db(request: Request = None) -> AsyncSession:
     async with AsyncSessionLocal() as session:
         try:
             if request is not None:
+                request.state.db = session
                 plant_id = request.headers.get("x-plant-id")
                 if plant_id:
                     # Validate plant_id is a number to prevent injection, or just let DB fail

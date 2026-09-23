@@ -424,6 +424,18 @@ async def update_flowchart(
         flowchart.title = payload.title
     if payload.status is not None:
         flowchart.status = payload.status
+    if payload.confidentiality_level is not None:
+        flowchart.confidentiality_level = payload.confidentiality_level
+    if payload.flowchart_code is not None and payload.flowchart_code != flowchart.flowchart_code:
+        # Check uniqueness
+        stmt = select(Flowchart.id).where(Flowchart.flowchart_code == payload.flowchart_code)
+        existing = (await db.execute(stmt)).scalar_one_or_none()
+        if existing:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"El código {payload.flowchart_code} ya está en uso.",
+            )
+        flowchart.flowchart_code = payload.flowchart_code
 
     if flowchart.product:
         if payload.customer_name is not None:

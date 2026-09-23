@@ -122,35 +122,44 @@ class AuditLogMiddleware(BaseHTTPMiddleware):
         # Build the column → FK mapping dynamically.
         fk_column = self._entity_to_fk_column(entity_type)
 
-        async with AsyncSessionLocal() as session:
-            # If user_id is still not found/invalid, get the first user ID in the database as a fallback
-            if not user_id:
-                try:
-                    stmt_user = text("SELECT id FROM users ORDER BY id ASC LIMIT 1")
-                    res_user = await session.execute(stmt_user)
-                    user_id = res_user.scalar()
-                except Exception:
-                    logger.warning("Could not retrieve fallback user ID from database")
+        session = getattr(request.state, "db", None)
+        if session:
+            # Re-use the session to participate in the same transaction (avoids lock deadlocks)
+            await self._execute_insert(session, action, user_id, entity_id, fk_column, request, body_json)
+        else:
+            # Fallback for routes that didn't use the get_db dependency
+            async with AsyncSessionLocal() as new_session:
+                await self._execute_insert(new_session, action, user_id, entity_id, fk_column, request, body_json)
+                await new_session.commit()
 
-            stmt = text(
-                f"""
-                INSERT INTO document_audit_logs
-                    (action, performed_by, {fk_column}, action_details, new_values, performed_at)
-                VALUES
-                    (:action, :user_id, :entity_id, :details, :new_values, now())
-                """
-            )
-            await session.execute(
-                stmt,
-                {
-                    "action": action,
-                    "user_id": user_id,
-                    "entity_id": entity_id,
-                    "details": f"{request.method} {request.url.path}",
-                    "new_values": json.dumps(body_json, default=str) if body_json else None,
-                },
-            )
-            await session.commit()
+    async def _execute_insert(self, session, action, user_id, entity_id, fk_column, request, body_json):
+        # If user_id is still not found/invalid, get the first user ID in the database as a fallback
+        if not user_id:
+            try:
+                stmt_user = text("SELECT id FROM users ORDER BY id ASC LIMIT 1")
+                res_user = await session.execute(stmt_user)
+                user_id = res_user.scalar()
+            except Exception:
+                logger.warning("Could not retrieve fallback user ID from database")
+
+        stmt = text(
+            f"""
+            INSERT INTO document_audit_logs
+                (action, performed_by, {fk_column}, action_details, new_values, performed_at)
+            VALUES
+                (:action, :user_id, :entity_id, :details, :new_values, now())
+            """
+        )
+        await session.execute(
+            stmt,
+            {
+                "action": action,
+                "user_id": user_id,
+                "entity_id": entity_id,
+                "details": f"{request.method} {request.url.path}",
+                "new_values": json.dumps(body_json, default=str) if body_json else None,
+            },
+        )
 
     @staticmethod
     def _extract_entity_id(path: str) -> Optional[int]:
