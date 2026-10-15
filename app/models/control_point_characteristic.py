@@ -1,20 +1,21 @@
 from __future__ import annotations
-
 from typing import TYPE_CHECKING, Optional
-
-from sqlalchemy import BigInteger, ForeignKey, String
+from sqlalchemy import Integer, BigInteger, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
 from app.models.base import Base
 from app.models.mixins.soft_delete import SoftDeleteMixin
+
 
 if TYPE_CHECKING:
     from app.models.control_plan_item import ControlPlanItem
 
+
 class ControlPointCharacteristic(Base, SoftDeleteMixin):
     __tablename__ = "control_point_characteristics"
-    
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+
+    id: Mapped[int] = mapped_column(
+        BigInteger().with_variant(Integer, "sqlite"), primary_key=True
+    )
     control_plan_item_id: Mapped[int] = mapped_column(
         BigInteger, ForeignKey("control_plan_items.id"), nullable=False
     )

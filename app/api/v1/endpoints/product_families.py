@@ -1,12 +1,16 @@
-from typing import List, Optional
-
+from typing import List
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.db import get_db
-from app.schemas.product_family import ProductFamilyCreate, ProductFamilyRead, ProductFamilyListRead, ProductFamilyUpdate
+from app.schemas.product_family import (
+    ProductFamilyCreate,
+    ProductFamilyRead,
+    ProductFamilyListRead,
+    ProductFamilyUpdate,
+)
 from app.services import product_family_service
 from app.api.deps import RoleChecker
+
 
 router = APIRouter(prefix="/product-families", tags=["Product Families"])
 
@@ -35,7 +39,7 @@ async def get_product_family(
 async def create_product_family(
     payload: ProductFamilyCreate,
     db: AsyncSession = Depends(get_db),
-    current_user = Depends(RoleChecker(['PFMEA Owner', 'Administrator', 'Team Member'])),
+    current_user=Depends(RoleChecker(["PFMEA Owner", "Administrator", "Team Member"])),
 ):
     return await product_family_service.create_product_family(db, payload)
 
@@ -45,7 +49,7 @@ async def update_product_family(
     family_id: int,
     payload: ProductFamilyUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user = Depends(RoleChecker(['PFMEA Owner', 'Administrator', 'Team Member'])),
+    current_user=Depends(RoleChecker(["PFMEA Owner", "Administrator", "Team Member"])),
 ):
     return await product_family_service.update_product_family(db, family_id, payload)
 
@@ -54,6 +58,6 @@ async def update_product_family(
 async def delete_product_family(
     family_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user = Depends(RoleChecker(['PFMEA Owner', 'Administrator'])),
+    current_user=Depends(RoleChecker(["PFMEA Owner", "Administrator"])),
 ):
     await product_family_service.delete_product_family(db, family_id)

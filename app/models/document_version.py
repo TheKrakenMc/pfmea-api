@@ -1,15 +1,22 @@
 """DocumentVersion model — polymorphic version tracking for all document types."""
 
 from __future__ import annotations
-
 from datetime import datetime
 from typing import TYPE_CHECKING, Optional
-
-from sqlalchemy import BigInteger, Boolean, ForeignKey, Index, Integer, String, func, DateTime
+from sqlalchemy import (
+    BigInteger,
+    Boolean,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    func,
+    DateTime,
+)
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
 from app.models.base import Base
+
 
 if TYPE_CHECKING:
     from app.models.user import User
@@ -29,7 +36,9 @@ class DocumentVersion(Base):
         Index("ix_doc_versions_created_by", "created_by"),
     )
 
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    id: Mapped[int] = mapped_column(
+        BigInteger().with_variant(Integer, "sqlite"), primary_key=True
+    )
     document_type: Mapped[str] = mapped_column(String, nullable=False)
     document_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
     revision_number: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -37,8 +46,12 @@ class DocumentVersion(Base):
     created_by: Mapped[int] = mapped_column(
         BigInteger, ForeignKey("users.id"), nullable=False
     )
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    original_creation_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    original_creation_date: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
     observations: Mapped[Optional[str]] = mapped_column(String)
     snapshot_data: Mapped[Optional[dict]] = mapped_column(JSONB)
     is_initial_revision: Mapped[bool] = mapped_column(

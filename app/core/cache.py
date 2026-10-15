@@ -10,11 +10,11 @@ to a no-op (all cache misses, no errors).
 """
 
 from __future__ import annotations
-
 import json
 import logging
 from functools import wraps
 from typing import Any, Callable, Optional
+
 
 logger = logging.getLogger("pfmea.cache")
 

@@ -1,13 +1,17 @@
 from datetime import datetime
 from typing import Optional
-
 from pydantic import BaseModel, ConfigDict, Field
 
 
 class ProductFamilyBase(BaseModel):
     name: str = Field(..., description="The name of the product family", max_length=255)
-    description: Optional[str] = Field(None, description="Optional description of the product family")
-    is_active: bool = Field(default=True, description="Whether the product family is active and available for selection")
+    description: Optional[str] = Field(
+        None, description="Optional description of the product family"
+    )
+    is_active: bool = Field(
+        default=True,
+        description="Whether the product family is active and available for selection",
+    )
 
 
 class ProductFamilyCreate(ProductFamilyBase):
@@ -15,9 +19,15 @@ class ProductFamilyCreate(ProductFamilyBase):
 
 
 class ProductFamilyUpdate(BaseModel):
-    name: Optional[str] = Field(None, description="The name of the product family", max_length=255)
-    description: Optional[str] = Field(None, description="Optional description of the product family")
-    is_active: Optional[bool] = Field(None, description="Whether the product family is active")
+    name: Optional[str] = Field(
+        None, description="The name of the product family", max_length=255
+    )
+    description: Optional[str] = Field(
+        None, description="Optional description of the product family"
+    )
+    is_active: Optional[bool] = Field(
+        None, description="Whether the product family is active"
+    )
 
 
 class ProductFamilyRead(ProductFamilyBase):

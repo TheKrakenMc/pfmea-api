@@ -1,12 +1,16 @@
-from typing import List, Optional
-
+from typing import List
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.db import get_db
-from app.schemas.production_line import ProductionLineCreate, ProductionLineRead, ProductionLineListRead, ProductionLineUpdate
+from app.schemas.production_line import (
+    ProductionLineCreate,
+    ProductionLineRead,
+    ProductionLineListRead,
+    ProductionLineUpdate,
+)
 from app.services import production_line_service
 from app.api.deps import RoleChecker
+
 
 router = APIRouter(prefix="/production-lines", tags=["Production Lines"])
 
@@ -31,11 +35,13 @@ async def get_production_line(
     return await production_line_service.get_production_line(db, line_id)
 
 
-@router.post("/", response_model=ProductionLineRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/", response_model=ProductionLineRead, status_code=status.HTTP_201_CREATED
+)
 async def create_production_line(
     payload: ProductionLineCreate,
     db: AsyncSession = Depends(get_db),
-    current_user = Depends(RoleChecker(['PFMEA Owner', 'Administrator', 'Team Member'])),
+    current_user=Depends(RoleChecker(["PFMEA Owner", "Administrator", "Team Member"])),
 ):
     return await production_line_service.create_production_line(db, payload)
 
@@ -45,7 +51,7 @@ async def update_production_line(
     line_id: int,
     payload: ProductionLineUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user = Depends(RoleChecker(['PFMEA Owner', 'Administrator', 'Team Member'])),
+    current_user=Depends(RoleChecker(["PFMEA Owner", "Administrator", "Team Member"])),
 ):
     return await production_line_service.update_production_line(db, line_id, payload)
 
@@ -54,6 +60,6 @@ async def update_production_line(
 async def delete_production_line(
     line_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user = Depends(RoleChecker(['PFMEA Owner', 'Administrator'])),
+    current_user=Depends(RoleChecker(["PFMEA Owner", "Administrator"])),
 ):
     await production_line_service.delete_production_line(db, line_id)

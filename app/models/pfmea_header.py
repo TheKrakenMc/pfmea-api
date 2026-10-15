@@ -1,12 +1,10 @@
 from __future__ import annotations
-
 from datetime import date, datetime
 from typing import TYPE_CHECKING, List, Optional
-
 from sqlalchemy import BigInteger, Date, ForeignKey, Index, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
 from app.models.base import Base
+
 
 if TYPE_CHECKING:
     from app.models.flowchart import Flowchart
@@ -44,8 +42,21 @@ class PfmeaHeader(Base):
     original_launch_date: Mapped[Optional[date]] = mapped_column(Date)
     part_number: Mapped[Optional[str]] = mapped_column(Text)
     product_description: Mapped[Optional[str]] = mapped_column(Text)
-    product_family_id: Mapped[Optional[int]] = mapped_column(BigInteger, ForeignKey("product_families.id"))
-    production_line_id: Mapped[Optional[int]] = mapped_column(BigInteger, ForeignKey("production_lines.id"))
+    product_family_id: Mapped[Optional[int]] = mapped_column(
+        BigInteger, ForeignKey("product_families.id")
+    )
+    production_line_id: Mapped[Optional[int]] = mapped_column(
+        BigInteger, ForeignKey("production_lines.id")
+    )
+
+    # APG Header fields
+    supplier_part_number: Mapped[Optional[str]] = mapped_column(Text)
+    model_year: Mapped[Optional[str]] = mapped_column(Text)
+    key_date: Mapped[Optional[date]] = mapped_column(Date)
+    special_document_control: Mapped[Optional[str]] = mapped_column(
+        Text, server_default="0", default="0"
+    )
+    process_responsibility: Mapped[Optional[str]] = mapped_column(Text)
 
     # MOC status lifecycle
     moc_status: Mapped[str] = mapped_column(
@@ -56,9 +67,7 @@ class PfmeaHeader(Base):
     )
 
     # Plant association
-    plant_id: Mapped[Optional[int]] = mapped_column(
-        BigInteger, ForeignKey("plants.id")
-    )
+    plant_id: Mapped[Optional[int]] = mapped_column(BigInteger, ForeignKey("plants.id"))
 
     # Original fields preserved
     start_date: Mapped[Optional[date]] = mapped_column(Date)
@@ -68,6 +77,8 @@ class PfmeaHeader(Base):
         String, comment="Draft, In Review, Approved, Archived"
     )
     owner_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"))
+    lock_version: Mapped[int] = mapped_column(default=1, server_default="1")
+    needs_review: Mapped[bool] = mapped_column(default=False, server_default="false")
     version: Mapped[int] = mapped_column(default=1, server_default="1")
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
@@ -80,8 +91,12 @@ class PfmeaHeader(Base):
     )
     owner: Mapped[Optional["User"]] = relationship()
     plant: Mapped[Optional["Plant"]] = relationship()
-    product_family_rel: Mapped[Optional["ProductFamily"]] = relationship(back_populates="pfmea_headers")
-    production_line_rel: Mapped[Optional["ProductionLine"]] = relationship(back_populates="pfmea_headers")
+    product_family_rel: Mapped[Optional["ProductFamily"]] = relationship(
+        back_populates="pfmea_headers"
+    )
+    production_line_rel: Mapped[Optional["ProductionLine"]] = relationship(
+        back_populates="pfmea_headers"
+    )
     team_members: Mapped[List["PfmeaTeamMember"]] = relationship(
         back_populates="pfmea", cascade="all, delete-orphan"
     )

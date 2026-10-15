@@ -1,13 +1,11 @@
 from __future__ import annotations
-
 from datetime import datetime
-from typing import TYPE_CHECKING, Optional
-
-from sqlalchemy import BigInteger, String, func
+from typing import TYPE_CHECKING
+from sqlalchemy import Integer, BigInteger, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
 from app.models.base import Base
 from app.models.mixins.soft_delete import SoftDeleteMixin
+
 
 if TYPE_CHECKING:
     from app.models.user import User
@@ -18,7 +16,9 @@ class Department(Base, SoftDeleteMixin):
 
     __tablename__ = "departments"
 
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    id: Mapped[int] = mapped_column(
+        BigInteger().with_variant(Integer, "sqlite"), primary_key=True
+    )
     name: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     is_active: Mapped[bool] = mapped_column(default=True, server_default="true")
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())

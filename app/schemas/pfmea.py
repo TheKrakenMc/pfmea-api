@@ -4,10 +4,8 @@ Covers AIAG-VDA 2019 Steps 1–6 with full CRUD schemas.
 """
 
 from __future__ import annotations
-
 from datetime import date, datetime
 from typing import List, Optional
-
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
@@ -15,12 +13,15 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 # Team Members (Core Team)
 # ---------------------------------------------------------------------------
 
+
 class TeamMemberCreate(BaseModel):
     """Payload to add a team member to a PFMEA analysis."""
+
     user_id: int
     role_in_team: str = Field(
         "Team Member",
         description="Role within the PFMEA team",
+        pattern=r"^(PFMEA Owner|Team Member|Viewer)$",
     )
     department: str = Field(..., description="Department of the team member")
 
@@ -51,8 +52,10 @@ class TeamMemberRead(BaseModel):
 # Worksheet Rows (Steps 2–6)
 # ---------------------------------------------------------------------------
 
+
 class WorksheetRowBase(BaseModel):
     """Shared fields for worksheet row create/update."""
+
     flowchart_step_id: Optional[int] = None
     process_item_name: Optional[str] = None
     station_operation: Optional[str] = None
@@ -90,14 +93,49 @@ class WorksheetRowBase(BaseModel):
     new_detection: Optional[int] = Field(None, ge=1, le=10)
     sequence_order: Optional[int] = None
 
+    @field_validator(
+        "responsible_person_id",
+        "flowchart_step_id",
+        mode="before",
+    )
+    @classmethod
+    def sanitize_worksheet_fk(cls, v):
+        if v == "" or v is None or v == 0 or v == "0":
+            return None
+        try:
+            val = int(v)
+            return val if val > 0 else None
+        except (ValueError, TypeError):
+            raise ValueError("Invalid reference ID")
+
+    @field_validator(
+        "severity",
+        "occurrence",
+        "detection",
+        "new_severity",
+        "new_occurrence",
+        "new_detection",
+        "sequence_order",
+        "target_completion_date",
+        "completion_date",
+        mode="before",
+    )
+    @classmethod
+    def empty_str_to_none_worksheet(cls, v):
+        if v == "" or v is None:
+            return None
+        return v
+
 
 class WorksheetRowCreate(WorksheetRowBase):
     """Payload for creating a new worksheet row."""
+
     pass
 
 
 class WorksheetRowUpdate(WorksheetRowBase):
     """Payload for PATCH — all fields optional for partial updates."""
+
     id: Optional[int] = None
 
 
@@ -111,14 +149,18 @@ class WorksheetRowRead(WorksheetRowBase):
     created_at: datetime
     updated_at: datetime
     responsible_person_name: Optional[str] = None
+    validated_by: Optional[int] = None
+    validated_at: Optional[datetime] = None
 
 
 # ---------------------------------------------------------------------------
 # Action Priority Lookup
 # ---------------------------------------------------------------------------
 
+
 class ActionPriorityRequest(BaseModel):
     """Input for the AP lookup utility."""
+
     severity: int = Field(..., ge=1, le=10)
     occurrence: int = Field(..., ge=1, le=10)
     detection: int = Field(..., ge=1, le=10)
@@ -126,6 +168,7 @@ class ActionPriorityRequest(BaseModel):
 
 class ActionPriorityResult(BaseModel):
     """Result of the AIAG-VDA AP lookup."""
+
     severity: int
     occurrence: int
     detection: int
@@ -136,8 +179,10 @@ class ActionPriorityResult(BaseModel):
 # PFMEA Header (Step 1 — Global Header)
 # ---------------------------------------------------------------------------
 
+
 class PfmeaHeaderBase(BaseModel):
     """Shared fields for header create/update."""
+
     flowchart_id: Optional[int] = None
     project_name: Optional[str] = None
     customer: Optional[str] = None
@@ -147,10 +192,43 @@ class PfmeaHeaderBase(BaseModel):
     product_family_id: Optional[int] = None
     production_line_id: Optional[int] = None
     confidentiality_level: Optional[str] = None
+    supplier_part_number: Optional[str] = None
+    model_year: Optional[str] = None
+    key_date: Optional[date] = None
+    special_document_control: Optional[str] = "0"
+    process_responsibility: Optional[str] = None
+
+    @field_validator(
+        "product_family_id",
+        "production_line_id",
+        "flowchart_id",
+        mode="before",
+    )
+    @classmethod
+    def sanitize_header_base_fk(cls, v):
+        if v == "" or v is None or v == 0 or v == "0":
+            return None
+        try:
+            val = int(v)
+            return val if val > 0 else None
+        except (ValueError, TypeError):
+            return None
+
+    @field_validator(
+        "original_launch_date",
+        "key_date",
+        mode="before",
+    )
+    @classmethod
+    def empty_str_to_none_header_base(cls, v):
+        if v == "" or v is None:
+            return None
+        return v
 
 
 class PfmeaHeaderCreate(BaseModel):
     """Payload for creating a new PFMEA analysis."""
+
     flowchart_id: int
     project_name: str = Field(..., min_length=1, max_length=500)
     customer: str = Field(..., min_length=1, max_length=500)
@@ -160,11 +238,43 @@ class PfmeaHeaderCreate(BaseModel):
     product_family_id: Optional[int] = None
     production_line_id: Optional[int] = None
     confidentiality_level: Optional[str] = "Internal"
+    supplier_part_number: Optional[str] = None
+    model_year: Optional[str] = None
+    key_date: Optional[date] = None
+    special_document_control: Optional[str] = "0"
+    process_responsibility: Optional[str] = None
     team_members: List[TeamMemberCreate] = Field(default_factory=list)
+
+    @field_validator(
+        "product_family_id",
+        "production_line_id",
+        mode="before",
+    )
+    @classmethod
+    def sanitize_header_create_fk(cls, v):
+        if v == "" or v is None or v == 0 or v == "0":
+            return None
+        try:
+            val = int(v)
+            return val if val > 0 else None
+        except (ValueError, TypeError):
+            return None
+
+    @field_validator(
+        "original_launch_date",
+        "key_date",
+        mode="before",
+    )
+    @classmethod
+    def empty_str_to_none_header_create(cls, v):
+        if v == "" or v is None:
+            return None
+        return v
 
 
 class PfmeaHeaderUpdate(BaseModel):
     """Payload for PUT/PATCH on header fields (Step 1 metadata)."""
+
     project_name: Optional[str] = Field(None, min_length=1, max_length=500)
     customer: Optional[str] = Field(None, min_length=1, max_length=500)
     original_launch_date: Optional[date] = None
@@ -177,9 +287,55 @@ class PfmeaHeaderUpdate(BaseModel):
     version: Optional[int] = None
     plant_id: Optional[int] = None
     pfmea_id_number: Optional[str] = None
+    supplier_part_number: Optional[str] = None
+    model_year: Optional[str] = None
+    key_date: Optional[date] = None
+    special_document_control: Optional[str] = "0"
+    process_responsibility: Optional[str] = None
+
+    @field_validator(
+        "product_family_id",
+        "production_line_id",
+        "plant_id",
+        mode="before",
+    )
+    @classmethod
+    def sanitize_header_update_fk(cls, v):
+        if v == "" or v is None or v == 0 or v == "0":
+            return None
+        try:
+            val = int(v)
+            return val if val > 0 else None
+        except (ValueError, TypeError):
+            return None
+
+    @field_validator("version", mode="before")
+    @classmethod
+    def sanitize_version(cls, v):
+        if v == "" or v is None or v == 0 or v == "0":
+            return 1
+        try:
+            val = int(v)
+            return val if val > 0 else 1
+        except (ValueError, TypeError):
+            return 1
+
+    @field_validator(
+        "original_launch_date",
+        "revision_date",
+        "key_date",
+        mode="before",
+    )
+    @classmethod
+    def empty_str_to_none_header_update(cls, v):
+        if v == "" or v is None:
+            return None
+        return v
 
 
 class PfmeaHeaderRead(BaseModel):
+    lock_version: int = 1
+    needs_review: bool = False
     model_config = ConfigDict(from_attributes=True)
 
     id: int
@@ -205,10 +361,16 @@ class PfmeaHeaderRead(BaseModel):
     team_members: List[TeamMemberRead] = []
     worksheet_row_count: Optional[int] = None
     high_priority_count: Optional[int] = None
+    supplier_part_number: Optional[str] = None
+    model_year: Optional[str] = None
+    key_date: Optional[date] = None
+    special_document_control: Optional[str] = "0"
+    process_responsibility: Optional[str] = None
 
 
 class PfmeaHeaderDetailRead(PfmeaHeaderRead):
     """Extended read schema with worksheet rows included (for detail view)."""
+
     worksheet_rows: List[WorksheetRowRead] = []
 
 
@@ -216,8 +378,10 @@ class PfmeaHeaderDetailRead(PfmeaHeaderRead):
 # MOC Status Transition
 # ---------------------------------------------------------------------------
 
+
 class MocStatusTransition(BaseModel):
     """Payload for PATCH /pfmea-project/{id}/status"""
+
     new_status: str = Field(
         ...,
         pattern=r"^(Draft|In Review|Approved|Archived)$",
@@ -228,8 +392,10 @@ class MocStatusTransition(BaseModel):
 # My Tasks (Pending Actions)
 # ---------------------------------------------------------------------------
 
+
 class PfmeaTaskRead(BaseModel):
     """A pending action item for the current user."""
+
     model_config = ConfigDict(from_attributes=True)
 
     row_id: int

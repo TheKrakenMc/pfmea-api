@@ -1,10 +1,13 @@
 services:
   - type: web
     name: qore-api
-    env: python
-    buildCommand: pip install -r requirements.txt
+    runtime: python
+    buildCommand: pip install -r requirements.txt -c requirements-lock.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/v1/readiness
     envVars:
+      - key: SECRET_KEY
+        generateValue: true
       - key: ENVIRONMENT
         value: production
       - key: DATABASE_URL

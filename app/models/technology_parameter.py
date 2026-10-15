@@ -1,12 +1,10 @@
 from __future__ import annotations
-
 from datetime import datetime
 from typing import TYPE_CHECKING, Optional
-
-from sqlalchemy import BigInteger, Boolean, Float, ForeignKey, String, func
+from sqlalchemy import Integer, BigInteger, Boolean, Float, ForeignKey, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
 from app.models.base import Base
+
 
 if TYPE_CHECKING:
     from app.models.technology import Technology
@@ -22,7 +20,9 @@ class TechnologyParameter(Base):
 
     __tablename__ = "technology_parameters"
 
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    id: Mapped[int] = mapped_column(
+        BigInteger().with_variant(Integer, "sqlite"), primary_key=True
+    )
     technology_id: Mapped[int] = mapped_column(
         BigInteger,
         ForeignKey("technologies.id", ondelete="CASCADE"),
@@ -33,7 +33,9 @@ class TechnologyParameter(Base):
         String(255), nullable=False, comment="Parameter name, e.g. Temperatura"
     )
     measurement_unit_id: Mapped[Optional[int]] = mapped_column(
-        BigInteger, ForeignKey("measurement_units.id", ondelete="SET NULL"), nullable=True
+        BigInteger,
+        ForeignKey("measurement_units.id", ondelete="SET NULL"),
+        nullable=True,
     )
     target_value: Mapped[Optional[float]] = mapped_column(
         Float, comment="Nominal / target value"

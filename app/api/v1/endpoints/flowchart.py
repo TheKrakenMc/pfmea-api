@@ -1,10 +1,7 @@
 from __future__ import annotations
-
 from typing import List
-
 from fastapi import APIRouter, Depends, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.db import get_db
 from app.core.security import limiter
 from app.schemas.flowchart import (
@@ -21,6 +18,8 @@ from app.schemas.flowchart import (
 )
 from app.api.deps import RoleChecker
 from app.services import flowchart_service
+from pydantic import BaseModel, Field
+
 
 router = APIRouter(prefix="/flowcharts", tags=["Flowcharts"])
 
@@ -28,6 +27,7 @@ router = APIRouter(prefix="/flowcharts", tags=["Flowcharts"])
 # ---------------------------------------------------------------------------
 # Flowchart CRUD
 # ---------------------------------------------------------------------------
+
 
 @router.post(
     "/",
@@ -42,7 +42,9 @@ router = APIRouter(prefix="/flowcharts", tags=["Flowcharts"])
 async def create_flowchart(
     payload: FlowchartCreate,
     db: AsyncSession = Depends(get_db),
-    current_user = Depends(RoleChecker(['PFMEA Owner', 'Administrator']))
+    current_user=Depends(
+        RoleChecker(["PFMEA Owner", "Administrator", "Process Engineer"])
+    ),
 ) -> FlowchartRead:
     flowchart = await flowchart_service.create_flowchart(db, payload, current_user.id)
     return FlowchartRead.model_validate(flowchart)
@@ -109,6 +111,7 @@ async def get_flowchart(
 # Flowchart Steps (nested resource)
 # ---------------------------------------------------------------------------
 
+
 @router.post(
     "/{flowchart_id}/steps",
     response_model=FlowchartStepRead,
@@ -168,6 +171,7 @@ async def replace_steps(
 # Archive endpoint
 # ---------------------------------------------------------------------------
 
+
 @router.patch(
     "/{flowchart_id}/archive",
     response_model=FlowchartRead,
@@ -204,6 +208,7 @@ async def archive_flowchart(
 # History endpoint
 # ---------------------------------------------------------------------------
 
+
 @router.get(
     "/{flowchart_id}/history",
     response_model=FlowchartHistoryRead,
@@ -224,4 +229,20 @@ async def get_flowchart_history(
         flowchart_id=history["flowchart_id"],
         versions=[v for v in history["versions"]],
         audit_logs=[a for a in history["audit_logs"]],
+    )
+
+
+class AtomicFlowchartSave(BaseModel):
+    expected_version: int = Field(ge=1)
+    header: FlowchartUpdate
+    steps: list[FlowchartStepCreate]
+
+
+@router.put("/{flowchart_id}/save", response_model=FlowchartRead)
+async def save_document(
+    flowchart_id: int, payload: AtomicFlowchartSave, db: AsyncSession = Depends(get_db)
+):
+    await flowchart_service.replace_steps(db, flowchart_id, payload.steps)
+    return FlowchartRead.model_validate(
+        await flowchart_service.update_flowchart(db, flowchart_id, payload.header)
     )

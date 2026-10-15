@@ -15,17 +15,13 @@ Usage::
 """
 
 from __future__ import annotations
-
 import functools
 import logging
-import traceback
 import uuid
-
 from fastapi import HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-from app.core.config import get_settings
 
 logger = logging.getLogger("pfmea.errors")
 
@@ -52,13 +48,11 @@ def error_handler(func):
         except RequestValidationError:
             raise  # Let FastAPI's built-in handler format these
         except Exception as exc:
-            settings = get_settings()
             logger.error(
                 "Unhandled error in %s: %s",
                 func.__name__,
-                exc,
-                exc_info=True,
-                extra={"traceback": traceback.format_exc()},
+                type(exc).__name__,
+                extra={"request_id": request_id},
             )
             return JSONResponse(
                 status_code=500,
@@ -67,7 +61,7 @@ def error_handler(func):
                     "error": {
                         "code": "INTERNAL_SERVER_ERROR",
                         "message": "An unexpected error occurred",
-                        "detail": str(exc) if settings.DEBUG else None,
+                        "detail": None,
                         "request_id": request_id,
                     },
                 },

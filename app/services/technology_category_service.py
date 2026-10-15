@@ -1,11 +1,12 @@
 from typing import List, Optional
-
 from fastapi import HTTPException, status
-from sqlalchemy import select, or_, and_
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.models.technology_category import TechnologyCategory
-from app.schemas.technology_category import TechnologyCategoryCreate, TechnologyCategoryUpdate
+from app.schemas.technology_category import (
+    TechnologyCategoryCreate,
+    TechnologyCategoryUpdate,
+)
 
 
 async def list_categories(
@@ -37,7 +38,7 @@ async def create_category(
 
     db_obj = TechnologyCategory(**payload.model_dump())
     db.add(db_obj)
-    await db.commit()
+    await db.flush()
     await db.refresh(db_obj)
     return db_obj
 
@@ -58,7 +59,9 @@ async def update_category(
 
     # If updating name, check for uniqueness
     if payload.name and payload.name != db_obj.name:
-        check_stmt = select(TechnologyCategory).where(TechnologyCategory.name == payload.name)
+        check_stmt = select(TechnologyCategory).where(
+            TechnologyCategory.name == payload.name
+        )
         check_result = await db.execute(check_stmt)
         if check_result.scalars().first():
             raise HTTPException(
@@ -70,7 +73,7 @@ async def update_category(
     for key, value in update_data.items():
         setattr(db_obj, key, value)
 
-    await db.commit()
+    await db.flush()
     await db.refresh(db_obj)
     return db_obj
 
@@ -88,4 +91,4 @@ async def delete_category(db: AsyncSession, category_id: int) -> None:
         )
 
     await db.delete(db_obj)
-    await db.commit()
+    await db.flush()

@@ -1,11 +1,11 @@
 from datetime import datetime
 from typing import List, Optional, Dict, Any
-
 from pydantic import BaseModel, ConfigDict, Field
+from app.schemas.technology_parameter import TechnologyParameterRead
 
 
 # ── Technology Schemas ──────────────────────────────────────────────────────
-from app.schemas.technology_parameter import TechnologyParameterRead
+
 
 class TechnologyBase(BaseModel):
     code: Optional[str] = Field(None, max_length=50)

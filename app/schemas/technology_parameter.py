@@ -2,6 +2,8 @@ from typing import Optional
 from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field
 from app.schemas.measurement_unit import MeasurementUnit
+
+
 class TechnologyParameterBase(BaseModel):
     name: str = Field(..., max_length=255)
     measurement_unit_id: Optional[int] = None

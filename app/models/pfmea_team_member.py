@@ -1,12 +1,10 @@
 from __future__ import annotations
-
 from datetime import datetime
 from typing import TYPE_CHECKING, Optional
-
 from sqlalchemy import ForeignKey, String, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
 from app.models.base import Base
+
 
 if TYPE_CHECKING:
     from app.models.pfmea_header import PfmeaHeader
@@ -35,12 +33,12 @@ class PfmeaTeamMember(Base):
         comment="PFMEA Owner, Team Member, Viewer",
     )
     assigned_at: Mapped[datetime] = mapped_column(server_default=func.now())
-    department: Mapped[Optional[str]] = mapped_column(String, comment="Department of the member in the team")
+    department: Mapped[Optional[str]] = mapped_column(
+        String, comment="Department of the member in the team"
+    )
 
     # Relationships
-    pfmea: Mapped[Optional["PfmeaHeader"]] = relationship(
-        back_populates="team_members"
-    )
+    pfmea: Mapped[Optional["PfmeaHeader"]] = relationship(back_populates="team_members")
     user: Mapped[Optional["User"]] = relationship()
 
     @property

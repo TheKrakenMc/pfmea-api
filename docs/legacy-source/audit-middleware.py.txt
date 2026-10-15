@@ -9,18 +9,15 @@ affected, and the raw request body for forensic replay.
 """
 
 from __future__ import annotations
-
 import json
 import logging
 from typing import Optional
-
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
-
 from sqlalchemy import text
-
 from app.core.db import AsyncSessionLocal
+
 
 logger = logging.getLogger("pfmea.audit")
 
@@ -101,6 +98,7 @@ class AuditLogMiddleware(BaseHTTPMiddleware):
                     token = token.split(" ")[1]
                 try:
                     from app.core.security import verify_access_token
+
                     payload = verify_access_token(token)
                     sub = payload.get("sub")
                     if sub is not None:
@@ -125,14 +123,26 @@ class AuditLogMiddleware(BaseHTTPMiddleware):
         session = getattr(request.state, "db", None)
         if session:
             # Re-use the session to participate in the same transaction (avoids lock deadlocks)
-            await self._execute_insert(session, action, user_id, entity_id, fk_column, request, body_json)
+            await self._execute_insert(
+                session, action, user_id, entity_id, fk_column, request, body_json
+            )
         else:
             # Fallback for routes that didn't use the get_db dependency
             async with AsyncSessionLocal() as new_session:
-                await self._execute_insert(new_session, action, user_id, entity_id, fk_column, request, body_json)
+                await self._execute_insert(
+                    new_session,
+                    action,
+                    user_id,
+                    entity_id,
+                    fk_column,
+                    request,
+                    body_json,
+                )
                 await new_session.commit()
 
-    async def _execute_insert(self, session, action, user_id, entity_id, fk_column, request, body_json):
+    async def _execute_insert(
+        self, session, action, user_id, entity_id, fk_column, request, body_json
+    ):
         # If user_id is still not found/invalid, get the first user ID in the database as a fallback
         if not user_id:
             try:

@@ -1,14 +1,22 @@
 """PfmeaWorksheetRow model — flat table for AIAG-VDA Steps 2–6."""
 
 from __future__ import annotations
-
 from datetime import date, datetime
 from typing import TYPE_CHECKING, Optional
-
-from sqlalchemy import BigInteger, Date, ForeignKey, Index, String, Text, func
+from sqlalchemy import (
+    Integer,
+    DateTime,
+    BigInteger,
+    Date,
+    ForeignKey,
+    Index,
+    String,
+    Text,
+    func,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
 from app.models.base import Base
+
 
 if TYPE_CHECKING:
     from app.models.flowchart_step import FlowchartStep
@@ -32,7 +40,9 @@ class PfmeaWorksheetRow(Base):
         Index("ix_worksheet_rows_action_status", "action_status"),
     )
 
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    id: Mapped[int] = mapped_column(
+        BigInteger().with_variant(Integer, "sqlite"), primary_key=True
+    )
 
     pfmea_id: Mapped[int] = mapped_column(
         BigInteger, ForeignKey("pfmea_headers.id", ondelete="CASCADE"), nullable=False
@@ -91,15 +101,11 @@ class PfmeaWorksheetRow(Base):
     failure_effect_end_user: Mapped[Optional[str]] = mapped_column(
         Text, comment="Step 4: Effect of failure (End User)"
     )
-    severity: Mapped[Optional[int]] = mapped_column(
-        comment="Severity rating 1-10"
-    )
+    severity: Mapped[Optional[int]] = mapped_column(comment="Severity rating 1-10")
     failure_cause: Mapped[Optional[str]] = mapped_column(
         Text, comment="Step 4: Potential cause of failure"
     )
-    occurrence: Mapped[Optional[int]] = mapped_column(
-        comment="Occurrence rating 1-10"
-    )
+    occurrence: Mapped[Optional[int]] = mapped_column(comment="Occurrence rating 1-10")
 
     # Step 5: Risk Analysis (Current Controls)
     prevention_controls: Mapped[Optional[str]] = mapped_column(
@@ -108,9 +114,7 @@ class PfmeaWorksheetRow(Base):
     detection_controls: Mapped[Optional[str]] = mapped_column(
         Text, comment="Step 5: Current detection controls"
     )
-    detection: Mapped[Optional[int]] = mapped_column(
-        comment="Detection rating 1-10"
-    )
+    detection: Mapped[Optional[int]] = mapped_column(comment="Detection rating 1-10")
     action_priority: Mapped[Optional[str]] = mapped_column(
         String, comment="Auto-calculated: H, M, L (AIAG-VDA AP)"
     )
@@ -130,8 +134,10 @@ class PfmeaWorksheetRow(Base):
     )
     target_completion_date: Mapped[Optional[date]] = mapped_column(Date)
     action_status: Mapped[Optional[str]] = mapped_column(
-        String, default="Open", server_default="Open",
-        comment="Open, In Progress, Completed"
+        String,
+        default="Open",
+        server_default="Open",
+        comment="Open, In Progress, Completed",
     )
     actions_taken: Mapped[Optional[str]] = mapped_column(Text)
     completion_date: Mapped[Optional[date]] = mapped_column(Date)
@@ -150,6 +156,9 @@ class PfmeaWorksheetRow(Base):
         String, comment="Re-evaluated AP: H, M, L"
     )
 
+    validated_by: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"))
+    validated_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+
     # Row ordering
     sequence_order: Mapped[int] = mapped_column(default=0, server_default="0")
 
@@ -167,3 +176,7 @@ class PfmeaWorksheetRow(Base):
     responsible_person: Mapped[Optional["User"]] = relationship(
         foreign_keys=[responsible_person_id]
     )
+
+    @property
+    def responsible_person_name(self) -> Optional[str]:
+        return self.responsible_person.full_name if self.responsible_person else None

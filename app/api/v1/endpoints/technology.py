@@ -1,8 +1,6 @@
 from typing import List, Optional
-
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.db import get_db
 from app.schemas.technology import (
     TechnologyRead,
@@ -17,6 +15,7 @@ from app.schemas.technology_parameter import (
 from app.services import technology_service
 from app.api.deps import RoleChecker, CurrentUser, get_current_user
 
+
 router = APIRouter(prefix="/technologies", tags=["Technologies"])
 
 # Shared RBAC dependency for write operations
@@ -24,6 +23,7 @@ _modifier_roles = RoleChecker(["Administrator", "PFMEA Owner", "Process Engineer
 
 
 # ── Technology CRUD ─────────────────────────────────────────────────────────
+
 
 @router.get("/", response_model=List[TechnologyRead])
 async def list_technologies(
@@ -58,7 +58,9 @@ async def update_technology(
     current_user: CurrentUser = Depends(_modifier_roles),
 ):
     """Update an existing technology."""
-    return await technology_service.update_technology(db, tech_id, payload, current_user.id)
+    return await technology_service.update_technology(
+        db, tech_id, payload, current_user.id
+    )
 
 
 @router.delete("/{tech_id}", response_model=TechnologyRead)
@@ -78,7 +80,9 @@ async def get_technology_impact(
     current_user: CurrentUser = Depends(get_current_user),
 ):
     """Get the dependency impact of a technology for deletion warnings."""
-    fc_count, prod_count = await technology_service.check_technology_dependencies(db, tech_id)
+    fc_count, prod_count = await technology_service.check_technology_dependencies(
+        db, tech_id
+    )
     return {
         "flowcharts_count": fc_count,
         "products_count": prod_count,
@@ -86,6 +90,7 @@ async def get_technology_impact(
 
 
 # ── Technology Parameter Sub-resource ───────────────────────────────────────
+
 
 @router.get("/{tech_id}/parameters", response_model=List[TechnologyParameterRead])
 async def list_parameters(
@@ -130,4 +135,3 @@ async def delete_parameter(
 ):
     """Soft delete a technology parameter."""
     await technology_service.delete_parameter(db, param_id)
-

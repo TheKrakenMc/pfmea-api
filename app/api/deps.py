@@ -4,15 +4,14 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
-
 from app.core.security import verify_access_token
 from app.core.db import get_db
 from app.models.user import User
-from app.models.role import Role
 
 
 class CurrentUser(BaseModel):
     """Lightweight representation of the authenticated user."""
+
     model_config = {"from_attributes": True}
 
     id: int
@@ -20,9 +19,13 @@ class CurrentUser(BaseModel):
     role_name: str
     must_change_password: bool
     is_verified: bool
+    plant_id: int | None = None
+    plant_ids: list[int] = []
 
 
-async def get_current_user(request: Request, db: AsyncSession = Depends(get_db)) -> CurrentUser:
+async def get_current_user(
+    request: Request, db: AsyncSession = Depends(get_db)
+) -> CurrentUser:
     """
     Extract and validate JWT from the HttpOnly cookie.
     Returns a CurrentUser with resolved role name for RBAC checks.
@@ -49,8 +52,32 @@ async def get_current_user(request: Request, db: AsyncSession = Depends(get_db))
                 detail="Invalid authentication credentials",
             )
 
+        from datetime import datetime, timezone
+        from app.models.auth_session import AuthSession, UserPlant
+        from app.services.session_service import utc
+        import secrets
+
+        auth_session = await db.get(AuthSession, payload.get("sid"))
+        if (
+            not auth_session
+            or auth_session.revoked
+            or str(auth_session.user_id) != str(user_id)
+            or utc(auth_session.expires_at) <= datetime.now(timezone.utc)
+        ):
+            raise HTTPException(status_code=401, detail="Session revoked or expired")
+        if request.method not in {
+            "GET",
+            "HEAD",
+            "OPTIONS",
+        } and not secrets.compare_digest(
+            auth_session.csrf_token, request.headers.get("x-csrf-token", "")
+        ):
+            raise HTTPException(status_code=403, detail="Invalid CSRF token")
+        request.state.session_id = auth_session.id
         # Verify user in database and eagerly load role
-        stmt = select(User).options(selectinload(User.role)).where(User.id == int(user_id))
+        stmt = (
+            select(User).options(selectinload(User.role)).where(User.id == int(user_id))
+        )
         result = await db.execute(stmt)
         user = result.scalars().first()
 
@@ -60,20 +87,80 @@ async def get_current_user(request: Request, db: AsyncSession = Depends(get_db))
                 detail="User not found",
             )
 
-        if not user.is_active:
+        if not user.is_active or user.deleted_at is not None or not user.is_verified:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Inactive user",
             )
 
-        allowed_paths = ["/api/v1/auth/change-password", "/api/v1/auth/logout", "/api/v1/auth/me"]
-        if user.must_change_password and not any(request.url.path.endswith(p) for p in allowed_paths):
+        allowed_paths = [
+            "/api/v1/auth/change-password",
+            "/api/v1/auth/logout",
+            "/api/v1/auth/me",
+        ]
+        if user.must_change_password and not any(
+            request.url.path.endswith(p) for p in allowed_paths
+        ):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="PASSWORD_CHANGE_REQUIRED",
             )
 
         role_name = user.role.name if user.role else "Unknown"
+        if role_name.lower() == "admin":
+            role_name = "Administrator"
+        from app.models import Plant
+        plant_ids = list(
+            (
+                await db.scalars(
+                    select(UserPlant.plant_id).join(Plant,Plant.id==UserPlant.plant_id).where(UserPlant.user_id == user.id,Plant.is_active.is_(True))
+                )
+            ).all()
+        )
+        if role_name.lower()=="administrator":
+            plant_ids=list((await db.scalars(select(Plant.id).where(Plant.is_active.is_(True)))).all())
+        raw_plant = request.headers.get("x-plant-id")
+        try:
+            selected_plant = (
+                int(raw_plant)
+                if raw_plant
+                else (user.plant_id if user.plant_id in plant_ids else (min(plant_ids) if plant_ids else None))
+            )
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid plant selection")
+        if selected_plant is not None:
+            from app.models.plant import Plant
+
+            plant = await db.get(Plant, selected_plant)
+            if (
+                not plant
+                or not plant.is_active
+                or (
+                    role_name.lower() != "administrator"
+                    and selected_plant not in plant_ids
+                )
+            ):
+                raise HTTPException(status_code=403, detail="Plant access denied")
+        if selected_plant is None and not request.url.path.startswith("/api/v1/auth/"):
+            raise HTTPException(403,"No authorized active plant")
+        request.state.plant_id = selected_plant
+        db.info["current_user_id"] = user.id
+        db.info["role_name"] = role_name.lower()
+        db.info["plant_id"] = selected_plant
+        db.info["plant_ids"] = plant_ids
+        if db.bind.dialect.name == "postgresql":
+            from sqlalchemy import text
+
+            await db.execute(
+                text(
+                    "SELECT set_config('app.current_plant_id', :plant, true), set_config('app.current_user_id', :actor, true), set_config('app.is_admin', :admin, true)"
+                ),
+                {
+                    "plant": str(selected_plant or 0),
+                    "actor": str(user.id),
+                    "admin": str(role_name.lower() == "administrator").lower(),
+                },
+            )
         request.state.current_user_id = user.id
         return CurrentUser(
             id=user.id,
@@ -81,6 +168,8 @@ async def get_current_user(request: Request, db: AsyncSession = Depends(get_db))
             role_name=role_name,
             must_change_password=user.must_change_password,
             is_verified=user.is_verified,
+            plant_id=selected_plant,
+            plant_ids=plant_ids,
         )
     except ValueError:
         raise HTTPException(
@@ -98,6 +187,7 @@ class RoleChecker:
 
         Depends(RoleChecker(["Administrator", "PFMEA Owner"]))
     """
+
     def __init__(self, allowed_roles: List[str]):
         self.allowed_roles = [r.lower() for r in allowed_roles]
 
@@ -160,35 +250,7 @@ class PfmeaAccessChecker:
         user: CurrentUser = Depends(get_current_user),
         db: AsyncSession = Depends(get_db),
     ) -> CurrentUser:
-        role_lower = user.role_name.lower()
+        from app.api.access import check_pfmea
 
-        # Admins and PFMEA Owners have unrestricted access
-        if role_lower in self.ADMIN_ROLES:
-            return user
-
-        # For other roles, check team membership
-        from app.models.pfmea_team_member import PfmeaTeamMember
-
-        stmt = select(PfmeaTeamMember).where(
-            PfmeaTeamMember.pfmea_id == pfmea_id,
-            PfmeaTeamMember.user_id == user.id,
-        )
-        result = await db.execute(stmt)
-        membership = result.scalars().first()
-
-        if membership is None:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="You are not a member of this PFMEA team.",
-            )
-
-        # If write access is required, verify team role allows it
-        if self.require_write:
-            if membership.role_in_team == "Viewer":
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Viewers cannot modify PFMEA data.",
-                )
-
+        await check_pfmea(db, user, pfmea_id, self.require_write)
         return user
-

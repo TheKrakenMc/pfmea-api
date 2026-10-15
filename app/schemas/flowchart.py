@@ -1,10 +1,8 @@
 """Pydantic schemas for Flowchart and FlowchartStep (nested creation)."""
 
 from __future__ import annotations
-
 from datetime import datetime
 from typing import Any, Dict, List, Optional
-
 from pydantic import BaseModel, ConfigDict, Field
 from app.schemas.technology import TechnologyRead
 from app.schemas.machinery import MachineryRead
@@ -15,17 +13,27 @@ from app.schemas.product import ProductCustomerRead
 # FlowchartStep
 # ---------------------------------------------------------------------------
 
+
 class FlowchartStepBase(BaseModel):
     technology_id: Optional[int] = None
     machinery_id: Optional[int] = None
-    step_number: int = Field(..., gt=0, description="Must be positive (e.g., 10, 20, 30)")
+    step_number: int = Field(
+        ..., gt=0, description="Must be positive (e.g., 10, 20, 30)"
+    )
+    sub_step: int = Field(
+        0, ge=0, description="0 for master step, 1, 2... for sub-steps"
+    )
     symbol_type: str = "operation"
     responsible_department: str = "Producción"
     custom_description: Optional[str] = None
     critical_flag: str = "none"
+    product_characteristics: Optional[str] = None
+    process_characteristics: Optional[str] = None
+    target: Optional[str] = None
 
 
 class FlowchartStepCreate(FlowchartStepBase):
+    id: Optional[int] = None
     """Payload for creating a step inside a flowchart."""
     pass
 
@@ -42,6 +50,7 @@ class FlowchartStepRead(FlowchartStepBase):
 # ---------------------------------------------------------------------------
 # Product
 # ---------------------------------------------------------------------------
+
 
 class ProductRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -66,12 +75,15 @@ class ProductCreate(BaseModel):
 # Flowchart
 # ---------------------------------------------------------------------------
 
+
 class FlowchartBase(BaseModel):
     product_id: int
     owner_id: Optional[int] = None
     title: str = Field(..., min_length=1, max_length=255)
     confidentiality_level: Optional[str] = None
-    status: Optional[str] = Field("Draft", pattern=r"^(Draft|In Review|Approved|Archived)$")
+    status: Optional[str] = Field(
+        "Draft", pattern=r"^(Draft|In Review|Approved|Archived)$"
+    )
 
 
 class FlowchartCreate(FlowchartBase):
@@ -85,9 +97,12 @@ class FlowchartCreate(FlowchartBase):
 
 class FlowchartUpdate(BaseModel):
     """Payload to update flowchart metadata and its associated product details."""
+
     title: Optional[str] = Field(None, min_length=1, max_length=255)
     confidentiality_level: Optional[str] = None
-    status: Optional[str] = Field(None, pattern=r"^(Draft|In Review|Approved|Archived)$")
+    status: Optional[str] = Field(
+        None, pattern=r"^(Draft|In Review|Approved|Archived)$"
+    )
     flowchart_code: Optional[str] = Field(None, min_length=1, max_length=255)
     customer_name: Optional[str] = Field(None, min_length=1, max_length=255)
     part_number: Optional[str] = Field(None, min_length=1, max_length=255)
@@ -95,6 +110,9 @@ class FlowchartUpdate(BaseModel):
 
 
 class FlowchartRead(FlowchartBase):
+    plant_id: int
+    lock_version: int = 1
+    needs_review: bool = False
     model_config = ConfigDict(from_attributes=True)
 
     id: int
@@ -110,6 +128,7 @@ class FlowchartRead(FlowchartBase):
 # Bulk step reorder / replace
 # ---------------------------------------------------------------------------
 
+
 class FlowchartStepsReorder(BaseModel):
     """Payload for PUT /flowcharts/{id}/steps — replaces all steps atomically."""
 
@@ -122,6 +141,7 @@ class FlowchartStepsReorder(BaseModel):
 # ---------------------------------------------------------------------------
 # Archive action
 # ---------------------------------------------------------------------------
+
 
 class FlowchartArchivePayload(BaseModel):
     """Payload for PATCH /flowcharts/{id}/archive."""
@@ -142,6 +162,7 @@ class FlowchartArchivePayload(BaseModel):
 # ---------------------------------------------------------------------------
 # History / Audit Trail
 # ---------------------------------------------------------------------------
+
 
 class UserMinimalRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)

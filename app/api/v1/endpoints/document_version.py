@@ -1,16 +1,15 @@
 from __future__ import annotations
-
 from typing import List
-
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.db import get_db
+from app.api.deps import get_current_user, CurrentUser
 from app.schemas.document_version import (
     DocumentVersionCreate,
     DocumentVersionRead,
 )
 from app.services import document_version_service
+
 
 router = APIRouter(prefix="/document-versions", tags=["Document Versions"])
 
@@ -23,8 +22,10 @@ router = APIRouter(prefix="/document-versions", tags=["Document Versions"])
 )
 async def create_document_version(
     payload: DocumentVersionCreate,
+    actor: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> DocumentVersionRead:
+    payload.created_by = actor.id
     version = await document_version_service.create_document_version(db, payload)
     return DocumentVersionRead.model_validate(version)
 

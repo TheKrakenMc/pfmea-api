@@ -5,16 +5,13 @@ All database interactions for the *Structure Analysis* module
 """
 
 from __future__ import annotations
-
 from datetime import datetime, timezone
 from typing import Optional
-
 from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
-
 from app.models.audit_log import AuditLog
 from app.models.document_version import DocumentVersion
 from app.models.flowchart import Flowchart
@@ -26,12 +23,18 @@ from app.models.customer import Customer
 from app.models.pfmea_header import PfmeaHeader
 from app.models.pfmea_team_member import PfmeaTeamMember
 from app.models.user import User
-from app.schemas.flowchart import FlowchartCreate, FlowchartStepCreate, FlowchartUpdate, ProductCreate
+from app.schemas.flowchart import (
+    FlowchartCreate,
+    FlowchartStepCreate,
+    FlowchartUpdate,
+    ProductCreate,
+)
 
 
 # ---------------------------------------------------------------------------
 # Helpers – existence guards
 # ---------------------------------------------------------------------------
+
 
 async def _ensure_product_exists(db: AsyncSession, product_id: int) -> None:
     """Raise 404 if the referenced product does not exist."""
@@ -57,9 +60,7 @@ async def _ensure_technology_exists(db: AsyncSession, technology_id: int) -> Non
 
 async def _ensure_machinery_exists(db: AsyncSession, machinery_id: int) -> None:
     """Raise 404 if the referenced machinery does not exist."""
-    result = await db.execute(
-        select(Machinery.id).where(Machinery.id == machinery_id)
-    )
+    result = await db.execute(select(Machinery.id).where(Machinery.id == machinery_id))
     if result.scalar_one_or_none() is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -67,14 +68,14 @@ async def _ensure_machinery_exists(db: AsyncSession, machinery_id: int) -> None:
         )
 
 
-async def _ensure_flowchart_exists(
-    db: AsyncSession, flowchart_id: int
-) -> Flowchart:
+async def _ensure_flowchart_exists(db: AsyncSession, flowchart_id: int) -> Flowchart:
     """Return the flowchart or raise 404."""
     result = await db.execute(
         select(Flowchart)
         .options(
-            joinedload(Flowchart.steps).joinedload(FlowchartStep.technology).selectinload(Technology.parameters),
+            joinedload(Flowchart.steps)
+            .joinedload(FlowchartStep.technology)
+            .selectinload(Technology.parameters),
             joinedload(Flowchart.steps).joinedload(FlowchartStep.machinery),
             joinedload(Flowchart.product).joinedload(Product.customer),
         )
@@ -89,11 +90,12 @@ async def _ensure_flowchart_exists(
     return flowchart
 
 
-async def _get_or_create_customer(db: AsyncSession, company_name: str, plant_id: int) -> Customer:
+async def _get_or_create_customer(
+    db: AsyncSession, company_name: str, plant_id: int
+) -> Customer:
     """Find an existing customer by name and plant, or create a new one to preserve integrity."""
     stmt = select(Customer).where(
-        Customer.company_name == company_name,
-        Customer.plant_id == plant_id
+        Customer.company_name == company_name, Customer.plant_id == plant_id
     )
     customer = (await db.execute(stmt)).scalar_one_or_none()
     if customer:
@@ -110,6 +112,7 @@ async def _get_or_create_customer(db: AsyncSession, company_name: str, plant_id:
     existing_code = (await db.execute(code_stmt)).scalar_one_or_none()
     if existing_code:
         import uuid
+
         customer_code = f"{customer_code}-{str(uuid.uuid4())[:4].upper()}"
 
     customer = Customer(
@@ -117,7 +120,7 @@ async def _get_or_create_customer(db: AsyncSession, company_name: str, plant_id:
         customer_code=customer_code,
         company_name=company_name,
         status="active",
-        is_active=True
+        is_active=True,
     )
     db.add(customer)
     await db.flush()
@@ -154,6 +157,7 @@ async def _generate_hierarchical_id(
 # Flowchart CRUD
 # ---------------------------------------------------------------------------
 
+
 async def create_flowchart(
     db: AsyncSession,
     payload: FlowchartCreate,
@@ -166,6 +170,8 @@ async def create_flowchart(
     - Every ``technology_id`` referenced in steps exists.
     - ``step_number`` values are unique within the batch.
     """
+    if payload.status != "Draft":
+        raise HTTPException(400, "New diagrams must start in Draft")
     # 1) Validate FK references and get product plant_id and technologies
     stmt = (
         select(Product)
@@ -182,7 +188,7 @@ async def create_flowchart(
     plant_id = product.plant_id
 
     # 2) Validate step-number uniqueness within the request payload
-    step_numbers = [s.step_number for s in payload.steps]
+    step_numbers = [(s.step_number, s.sub_step) for s in payload.steps]
     if len(step_numbers) != len(set(step_numbers)):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -202,7 +208,7 @@ async def create_flowchart(
     flowchart = Flowchart(
         plant_id=plant_id,
         product_id=payload.product_id,
-        owner_id=payload.owner_id,
+        owner_id=current_user_id,
         flowchart_code=flowchart_code,
         title=payload.title,
         status=payload.status,
@@ -226,19 +232,11 @@ async def create_flowchart(
     else:
         for step_data in payload.steps:
             flowchart.steps.append(
-                FlowchartStep(
-                    technology_id=step_data.technology_id,
-                    machinery_id=step_data.machinery_id,
-                    step_number=step_data.step_number,
-                    responsible_department=step_data.responsible_department,
-                    symbol_type=step_data.symbol_type,
-                    custom_description=step_data.custom_description,
-                    critical_flag=step_data.critical_flag,
-                )
+                FlowchartStep(**step_data.model_dump(exclude={"id"}))
             )
 
     db.add(flowchart)
-    await db.flush()          # assign PKs without committing
+    await db.flush()  # assign PKs without committing
     return await _ensure_flowchart_exists(db, flowchart.id)
 
 
@@ -258,7 +256,9 @@ async def list_flowcharts(
         select(Flowchart)
         .options(
             joinedload(Flowchart.product).joinedload(Product.customer),
-            joinedload(Flowchart.steps).joinedload(FlowchartStep.technology).selectinload(Technology.parameters),
+            joinedload(Flowchart.steps)
+            .joinedload(FlowchartStep.technology)
+            .selectinload(Technology.parameters),
             joinedload(Flowchart.steps).joinedload(FlowchartStep.machinery),
         )
         .order_by(Flowchart.id)
@@ -271,6 +271,7 @@ async def list_flowcharts(
 # ---------------------------------------------------------------------------
 # FlowchartStep management
 # ---------------------------------------------------------------------------
+
 
 async def add_step(
     db: AsyncSession,
@@ -294,18 +295,19 @@ async def add_step(
     if payload.machinery_id is not None:
         await _ensure_machinery_exists(db, payload.machinery_id)
 
-    # 3) Check step_number uniqueness proactively (better UX than raw DB error)
+    # 3) Check (step_number, sub_step) uniqueness proactively (better UX than raw DB error)
     existing = await db.execute(
         select(FlowchartStep.id).where(
             FlowchartStep.flowchart_id == flowchart_id,
             FlowchartStep.step_number == payload.step_number,
+            FlowchartStep.sub_step == payload.sub_step,
         )
     )
     if existing.scalar_one_or_none() is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=(
-                f"El paso número {payload.step_number} ya existe "
+                f"El paso {payload.step_number} (sub-paso {payload.sub_step}) ya existe "
                 f"en el diagrama de flujo {flowchart_id}."
             ),
         )
@@ -316,10 +318,14 @@ async def add_step(
         technology_id=payload.technology_id,
         machinery_id=payload.machinery_id,
         step_number=payload.step_number,
+        sub_step=payload.sub_step,
         responsible_department=payload.responsible_department,
         symbol_type=payload.symbol_type,
         custom_description=payload.custom_description,
         critical_flag=payload.critical_flag,
+        product_characteristics=payload.product_characteristics,
+        process_characteristics=payload.process_characteristics,
+        target=payload.target,
     )
     db.add(step)
 
@@ -331,7 +337,7 @@ async def add_step(
             status_code=status.HTTP_409_CONFLICT,
             detail=(
                 f"Conflicto de integridad al insertar el paso "
-                f"{payload.step_number} en el flujo {flowchart_id}."
+                f"{payload.step_number}.{payload.sub_step} en el flujo {flowchart_id}."
             ),
         )
 
@@ -350,18 +356,18 @@ async def replace_steps(
 
     Validates:
     - ``flowchart_id`` exists.
-    - ``step_number`` values are unique within the batch.
+    - ``(step_number, sub_step)`` values are unique within the batch.
     - Every ``technology_id`` referenced exists.
     """
     # 1) Validate parent flowchart
     flowchart = await _ensure_flowchart_exists(db, flowchart_id)
 
-    # 2) Validate step-number uniqueness within the request payload
-    step_numbers = [s.step_number for s in steps_data]
-    if len(step_numbers) != len(set(step_numbers)):
+    # 2) Validate step-key uniqueness within the request payload
+    step_keys = [(s.step_number, s.sub_step) for s in steps_data]
+    if len(step_keys) != len(set(step_keys)):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Números de paso duplicados en la solicitud.",
+            detail="Números de paso o sub-pasos duplicados en la solicitud.",
         )
 
     # 3) Validate every referenced technology and machinery
@@ -371,36 +377,37 @@ async def replace_steps(
         if step_data.machinery_id is not None:
             await _ensure_machinery_exists(db, step_data.machinery_id)
 
-    # 4) Delete existing steps
-    from sqlalchemy import delete
+    # Preserve source IDs and therefore all PFMEA relationships.
+    existing = {step.id: step for step in flowchart.steps}
+    incoming_ids = [step.id for step in steps_data if step.id and step.id > 0]
+    if len(incoming_ids) != len(set(incoming_ids)) or not set(incoming_ids).issubset(
+        existing
+    ):
+        raise HTTPException(400, "Step IDs must be unique and belong to this diagram")
+    if db.bind.dialect.name == "postgresql":
+        from sqlalchemy import text
 
-    await db.execute(
-        delete(FlowchartStep).where(FlowchartStep.flowchart_id == flowchart_id)
-    )
-
-    # 5) Insert new steps in order
+        await db.execute(text("SET CONSTRAINTS uq_flowchart_step_key DEFERRED"))
+    else:
+        for old in existing.values():
+            old.step_number = -old.id
+        await db.flush()
+    retained = set(incoming_ids)
+    for old_id, old in existing.items():
+        if old_id not in retained:
+            await db.delete(old)
     for step_data in steps_data:
-        db.add(
-            FlowchartStep(
-                flowchart_id=flowchart_id,
-                technology_id=step_data.technology_id,
-                machinery_id=step_data.machinery_id,
-                step_number=step_data.step_number,
-                responsible_department=step_data.responsible_department,
-                symbol_type=step_data.symbol_type,
-                custom_description=step_data.custom_description,
-                critical_flag=step_data.critical_flag,
-            )
-        )
-
+        values = step_data.model_dump(exclude={"id"})
+        step = existing.get(step_data.id) if step_data.id else None
+        if step is None:
+            db.add(FlowchartStep(flowchart_id=flowchart_id, **values))
+        else:
+            for key, value in values.items():
+                setattr(step, key, value)
     try:
         await db.flush()
     except IntegrityError:
-        await db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"Conflicto de integridad al reemplazar pasos en el flujo {flowchart_id}.",
-        )
+        raise HTTPException(409, "Step order conflicts with an existing operation")
 
     # 6) Refresh and return the flowchart with new steps
     await db.refresh(flowchart)
@@ -411,6 +418,7 @@ async def replace_steps(
 # ---------------------------------------------------------------------------
 # Metadata & Product Updates
 # ---------------------------------------------------------------------------
+
 
 async def update_flowchart(
     db: AsyncSession,
@@ -423,12 +431,34 @@ async def update_flowchart(
     if payload.title is not None:
         flowchart.title = payload.title
     if payload.status is not None:
-        flowchart.status = payload.status
+        normal = {"draft": "Draft", "in review": "In Review", "approved": "Approved"}
+        proposed = normal.get(payload.status.lower().replace("_", " "))
+        if not proposed:
+            raise HTTPException(400, "Invalid flowchart status; use archive operation")
+        allowed = {
+            "Draft": {"Draft", "In Review"},
+            "In Review": {"In Review", "Draft", "Approved"},
+            "Approved": set(),
+            "Archived": set(),
+        }
+        current = normal.get(
+            (flowchart.status or "Draft").lower().replace("_", " "), flowchart.status
+        )
+        if proposed not in allowed.get(current, set()):
+            raise HTTPException(400, "Invalid flowchart transition")
+        if proposed == "Approved" and not flowchart.steps:
+            raise HTTPException(400, "An approved diagram requires steps")
+        flowchart.status = proposed
     if payload.confidentiality_level is not None:
         flowchart.confidentiality_level = payload.confidentiality_level
-    if payload.flowchart_code is not None and payload.flowchart_code != flowchart.flowchart_code:
+    if (
+        payload.flowchart_code is not None
+        and payload.flowchart_code != flowchart.flowchart_code
+    ):
         # Check uniqueness
-        stmt = select(Flowchart.id).where(Flowchart.flowchart_code == payload.flowchart_code)
+        stmt = select(Flowchart.id).where(
+            Flowchart.flowchart_code == payload.flowchart_code
+        )
         existing = (await db.execute(stmt)).scalar_one_or_none()
         if existing:
             raise HTTPException(
@@ -438,26 +468,16 @@ async def update_flowchart(
         flowchart.flowchart_code = payload.flowchart_code
 
     if flowchart.product:
-        if payload.customer_name is not None:
-            customer = await _get_or_create_customer(db, payload.customer_name, flowchart.product.plant_id)
-            flowchart.product.customer_id = customer.id
-            flowchart.product.customer = customer
-        if payload.part_number is not None:
-            # Check unique constraint proactively if part number changed
-            if payload.part_number != flowchart.product.part_number:
-                stmt = select(Product).where(
-                    Product.part_number == payload.part_number,
-                    Product.plant_id == flowchart.product.plant_id
+        for field, current in (
+            ("customer_name", flowchart.product.customer_name),
+            ("part_number", flowchart.product.part_number),
+            ("product_description", flowchart.product.description),
+        ):
+            proposed = getattr(payload, field)
+            if proposed is not None and proposed != current:
+                raise HTTPException(
+                    400, "Edit product metadata through its versioned product record"
                 )
-                existing = (await db.execute(stmt)).scalar_one_or_none()
-                if existing:
-                    raise HTTPException(
-                        status_code=status.HTTP_409_CONFLICT,
-                        detail=f"Ya existe un producto con el número de parte {payload.part_number}.",
-                    )
-            flowchart.product.part_number = payload.part_number
-        if payload.product_description is not None:
-            flowchart.product.description = payload.product_description
 
     db.add(flowchart)
     try:
@@ -470,26 +490,44 @@ async def update_flowchart(
         )
 
     await db.refresh(flowchart)
-    return await _ensure_flowchart_exists(db, flowchart_id)
+    flowchart = await _ensure_flowchart_exists(db, flowchart_id)
+    if payload.status and flowchart.status == "Approved":
+        from app.schemas.flowchart import FlowchartRead
+
+        db.add(
+            DocumentVersion(
+                document_type="flowchart",
+                document_id=flowchart.id,
+                revision_number=flowchart.version,
+                change_reason="Approved",
+                created_by=db.info["current_user_id"],
+                original_creation_date=flowchart.created_at,
+                snapshot_data=FlowchartRead.model_validate(flowchart).model_dump(
+                    mode="json"
+                ),
+                is_initial_revision=False,
+            )
+        )
+        await db.flush()
+    return flowchart
 
 
 async def list_products(db: AsyncSession) -> list[Product]:
     """Retrieve all master products for project creation selector."""
     result = await db.execute(
-        select(Product)
-        .options(joinedload(Product.customer))
-        .order_by(Product.id)
+        select(Product).options(joinedload(Product.customer)).order_by(Product.id)
     )
     return list(result.scalars().all())
 
 
 async def create_product(db: AsyncSession, payload: ProductCreate) -> Product:
     """Create a new product record."""
-    plant_id = payload.plant_id or 1
+    plant_id = payload.plant_id or db.info.get("plant_id")
+    if not plant_id:
+        raise HTTPException(400, "A plant must be selected")
     # Check uniqueness
     stmt = select(Product).where(
-        Product.part_number == payload.part_number,
-        Product.plant_id == plant_id
+        Product.part_number == payload.part_number, Product.plant_id == plant_id
     )
     existing = (await db.execute(stmt)).scalar_one_or_none()
     if existing:
@@ -524,6 +562,7 @@ async def create_product(db: AsyncSession, payload: ProductCreate) -> Product:
 # ---------------------------------------------------------------------------
 # Archive Flowchart
 # ---------------------------------------------------------------------------
+
 
 async def archive_flowchart(
     db: AsyncSession,
@@ -565,7 +604,9 @@ async def archive_flowchart(
         "flowchart_code": flowchart.flowchart_code,
         "product_id": flowchart.product_id,
         "owner_id": flowchart.owner_id,
-        "created_at": flowchart.created_at.isoformat() if flowchart.created_at else None,
+        "created_at": flowchart.created_at.isoformat()
+        if flowchart.created_at
+        else None,
         "steps_count": len(flowchart.steps),
         "archived_by_user_id": user_id,
         "archived_by_name": user_name,
@@ -647,7 +688,9 @@ async def archive_flowchart(
         # Find linked PFMEA documents and their team members
         pfmea_result = await db.execute(
             select(PfmeaHeader)
-            .options(joinedload(PfmeaHeader.team_members).joinedload(PfmeaTeamMember.user))
+            .options(
+                joinedload(PfmeaHeader.team_members).joinedload(PfmeaTeamMember.user)
+            )
             .where(PfmeaHeader.flowchart_id == flowchart_id)
         )
         pfmea_headers = list(pfmea_result.unique().scalars().all())
@@ -657,16 +700,25 @@ async def archive_flowchart(
 
         for pfmea in pfmea_headers:
             for member in pfmea.team_members:
-                if member.user and member.user.email and member.user.email not in seen_emails:
+                if (
+                    member.user
+                    and member.user.email
+                    and member.user.email not in seen_emails
+                ):
                     seen_emails.add(member.user.email)
                     team_emails.append((member.user.email, member.user.full_name or ""))
 
         # Also notify the flowchart owner if not already included
-        if flowchart.owner and flowchart.owner.email and flowchart.owner.email not in seen_emails:
+        if (
+            flowchart.owner
+            and flowchart.owner.email
+            and flowchart.owner.email not in seen_emails
+        ):
             team_emails.append((flowchart.owner.email, flowchart.owner.full_name or ""))
 
         if team_emails:
             import asyncio
+
             asyncio.create_task(
                 send_archive_notification_email(
                     team_emails=team_emails,
@@ -682,6 +734,7 @@ async def archive_flowchart(
             )
     except Exception as e:
         import logging
+
         logging.getLogger(__name__).warning(
             f"Archive email notification failed for flowchart {flowchart_id}: {e}"
         )
@@ -693,6 +746,7 @@ async def archive_flowchart(
 # ---------------------------------------------------------------------------
 # Flowchart History
 # ---------------------------------------------------------------------------
+
 
 async def get_flowchart_history(
     db: AsyncSession,

@@ -1,13 +1,10 @@
 """ManufacturingLocation model — physical work centres inside a plant."""
 
 from __future__ import annotations
-
 from datetime import datetime
 from typing import Optional
-
-from sqlalchemy import BigInteger, ForeignKey, String, func
+from sqlalchemy import Integer, BigInteger, ForeignKey, String, func
 from sqlalchemy.orm import Mapped, mapped_column
-
 from app.models.base import Base
 from app.models.mixins.soft_delete import SoftDeleteMixin
 
@@ -17,7 +14,9 @@ class ManufacturingLocation(Base, SoftDeleteMixin):
 
     __tablename__ = "manufacturing_locations"
 
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    id: Mapped[int] = mapped_column(
+        BigInteger().with_variant(Integer, "sqlite"), primary_key=True
+    )
     plant_id: Mapped[int] = mapped_column(
         BigInteger, ForeignKey("plants.id"), nullable=False
     )

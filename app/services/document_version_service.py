@@ -1,12 +1,9 @@
 """Service layer for DocumentVersion business logic."""
 
 from __future__ import annotations
-
 from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload
-
 from app.models.document_version import DocumentVersion
 from app.schemas.document_version import DocumentVersionCreate
 
@@ -16,16 +13,36 @@ async def create_document_version(
     payload: DocumentVersionCreate,
 ) -> DocumentVersion:
     """Create a new document version record."""
+    from app.models import Product, Flowchart, PfmeaHeader, ControlPlan
+    from app.schemas.product import ProductDetailRead
+    from app.schemas.flowchart import FlowchartRead
+    from app.schemas.pfmea import PfmeaHeaderDetailRead
+    from app.schemas.control_plan import ControlPlanRead
+
+    definitions = {
+        "product": (Product, ProductDetailRead),
+        "flowchart": (Flowchart, FlowchartRead),
+        "pfmea": (PfmeaHeader, PfmeaHeaderDetailRead),
+        "pfmea_project": (PfmeaHeader, PfmeaHeaderDetailRead),
+        "control_plan": (ControlPlan, ControlPlanRead),
+    }
+    model, schema = definitions[payload.document_type]
+    document = await db.get(model, payload.document_id)
+    # Explicitly load relationships rather than trusting client-supplied historical content.
+    relationships = [rel.key for rel in model.__mapper__.relationships]
+    if relationships:
+        await db.refresh(document, attribute_names=relationships)
+    snapshot = schema.model_validate(document).model_dump(mode="json")
     version = DocumentVersion(
         document_type=payload.document_type,
         document_id=payload.document_id,
-        revision_number=payload.revision_number,
+        revision_number=document.version,
         change_reason=payload.change_reason,
         created_by=payload.created_by,
-        original_creation_date=payload.original_creation_date,
+        original_creation_date=document.created_at,
         observations=payload.observations,
-        snapshot_data=payload.snapshot_data,
-        is_initial_revision=payload.is_initial_revision,
+        snapshot_data=snapshot,
+        is_initial_revision=False,
     )
     db.add(version)
     await db.flush()

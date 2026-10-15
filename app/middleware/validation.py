@@ -9,10 +9,8 @@ request bodies.  This module provides **additional** utilities:
 """
 
 from __future__ import annotations
-
 import functools
 from typing import Any, Callable, Optional, Type
-
 from fastapi import HTTPException, Query, status
 from pydantic import BaseModel, ValidationError
 

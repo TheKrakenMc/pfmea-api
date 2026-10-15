@@ -1,73 +1,38 @@
 # PFMEA API
 
-Esta es la API para el proyecto PFMEA, construida utilizando [FastAPI](https://fastapi.tiangolo.com/).
+API FastAPI + SQLAlchemy + PostgreSQL para productos, diagramas de proceso, PFMEA y planes de control. La interfaz está en el repositorio hermano pfmea-ui.
 
-## 🚀 Requisitos Previos
+## Funcionamiento
 
-- Python 3.8+ (Recomendado 3.10+)
-- Base de Datos (PostgreSQL recomendado)
+El usuario inicia sesión con contraseña. Cada solicitud valida la sesión persistida, el rol, la planta autorizada y la relación con el proyecto. Los documentos se guardan con una revisión esperada; una copia obsoleta recibe 409. Los cambios y la auditoría se confirman juntos. Los aprobados son inmutables y sus snapshots se conservan al reabrir.
 
-## 🛠️ Instalación y Configuración
+Python es la referencia provisional de AP. Alto riesgo significa AP H o severidad ≥ 9 por decisión del proyecto. El cierre requiere evidencia, responsable, fecha, reevaluación y validación de Owner. No se declara certificación ni conformidad normativa automática.
 
-Sigue estos pasos para configurar el entorno de desarrollo y ejecutar la API de forma local.
+## Desarrollo
 
-### 1. Clonar el repositorio y entrar al directorio
-```bash
-git clone <URL_DEL_REPOSITORIO>
-cd pfmea-api
-```
+Crear un entorno virtual e instalar requirements-lock.txt para reproducir el entorno auditado. Copiar .env.example y configurar una base de desarrollo propia. Antes de iniciar una base existente, seguir docs/migration-runbook.md sobre respaldo y ensayo.
 
-### 2. Crear y activar un entorno virtual
-**En Windows:**
-```powershell
-python -m venv venv
-.\venv\Scripts\activate
-```
+    python -m pip install -r requirements-lock.txt
+    python run_migrations.py
+    python -m scripts.provision_admin
+    python -m uvicorn app.main:app --reload
 
-**En Linux/macOS:**
-```bash
-python -m venv venv
-source venv/bin/activate
-```
+El aprovisionamiento pregunta la contraseña sin imprimirla. El arranque de la API no migra ni crea administradores. No hay ruta pública de migración ni OTP de login. La verificación de correo y recuperación de contraseña se mantienen separadas.
 
-### 3. Instalar las dependencias
-```bash
-pip install -r requirements.txt
-```
+Health: /api/v1/health. Readiness: /api/v1/readiness; devuelve 503 si la base, esquema o cuenta de ejecución requerida no están disponibles.
 
-### 4. Configurar las variables de entorno
-Asegúrate de tener un archivo `.env` en la raíz del proyecto (puedes basarte en `.env.example`).
-Abre el archivo `.env` y configura tus variables de conexión a la base de datos:
-```ini
-# Ejemplo de contenido en .env
-DATABASE_URL=postgresql+asyncpg://usuario:contraseña@localhost:5432/nombre_db
-```
+## Calidad y contratos
 
-### 5. Iniciar la API
-Para ejecutar el servidor de desarrollo de FastAPI con recarga automática, usa `uvicorn`:
-```bash
-uvicorn app.main:app --reload
-```
-La API estará disponible en: `http://127.0.0.1:8000`
+    python -m ruff check app scripts tests
+    python -m pytest -q
+    python -m compileall -q app scripts
+    python -m scripts.export_contracts
 
----
+CI incluye integración PostgreSQL nativa en una base efímera. Véase docs/local-verification.md para las diferencias entre SQLite, PGlite y PostgreSQL nativo, y para la auditoría visual sintética.
 
-## 📚 Documentación de la API
-
-Dado que esta API está construida con FastAPI, la documentación interactiva se genera automáticamente. 
-Una vez que el servidor esté corriendo, puedes acceder a:
-
-- **Swagger UI (Ideal para probar los endpoints):** [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
-- **ReDoc (Ideal para leer la especificación):** [http://127.0.0.1:8000/redoc](http://127.0.0.1:8000/redoc)
-
-### Referencia Manual de Endpoints
-
-*(Esta sección está preparada para que agregues detalles técnicos adicionales, arquitectura, modelos de datos clave, o la documentación manual de tus rutas a medida que la API crezca).*
-
-#### 🟢 [Nombre del Módulo / Recurso]
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| `GET`  | `/api/v1/ejemplo` | Retorna una lista de ejemplos. |
-| `POST` | `/api/v1/ejemplo` | Crea un nuevo registro. |
-
-> **Nota para el desarrollador:** Documenta aquí cualquier lógica compleja, flujos de autenticación o reglas de negocio que no sean evidentes en la documentación autogenerada de Swagger.
+- docs/permission-matrix.md: permisos y plantas.
+- docs/contracts/endpoint-inventory.md: inventario generado por endpoint.
+- docs/contracts/openapi.json: contrato API generado.
+- docs/migration-runbook.md: mantenimiento, respaldo y reversión.
+- docs/traceability-review.md: trazabilidad y límites normativos.
+- docs/baseline y docs/legacy-source: fuentes históricas conservadas fuera del runtime.

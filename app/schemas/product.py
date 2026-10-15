@@ -1,17 +1,15 @@
 from __future__ import annotations
-
 from datetime import datetime
 from typing import List, Optional
-
 from pydantic import BaseModel, ConfigDict, Field
-
-
 from app.schemas.technology import TechnologyRead
 from app.schemas.measurement_unit import MeasurementUnit
+
 
 # ---------------------------------------------------------------------------
 # Product Parameters
 # ---------------------------------------------------------------------------
+
 
 class ProductParameterBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
@@ -50,9 +48,11 @@ class ProductParameterRead(ProductParameterBase):
     updated_at: Optional[datetime] = None
     measurement_unit: Optional[MeasurementUnit] = None
 
+
 # ---------------------------------------------------------------------------
 # Product Customer
 # ---------------------------------------------------------------------------
+
 
 class ProductCustomerRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -67,7 +67,10 @@ class ProductCustomerRead(BaseModel):
 # Product
 # ---------------------------------------------------------------------------
 
+
 class ProductRead(BaseModel):
+    lock_version: int = 1
+    needs_review: bool = False
     model_config = ConfigDict(from_attributes=True)
 
     id: int
@@ -116,7 +119,7 @@ class ProductBase(BaseModel):
     cycle_time: Optional[float] = None
     rate_per_hour: Optional[float] = None
     image_url: Optional[str] = None
-    status: Optional[str] = Field("active", max_length=50)
+    status: Optional[str] = Field("Draft", max_length=50)
 
 
 class ProductCreate(ProductBase):

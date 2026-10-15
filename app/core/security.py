@@ -1,14 +1,15 @@
+import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional
-from jose import jwt, JWTError
+import jwt
+from jwt import InvalidTokenError as JWTError
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
-
 from slowapi import Limiter
 from slowapi.util import get_remote_address
-
 from app.core.config import get_settings
+
 
 settings = get_settings()
 
@@ -17,7 +18,11 @@ limiter = Limiter(key_func=get_remote_address, default_limits=["100/minute"])
 
 
 def create_access_token(
-    subject: str | Any, role_id: str | int, expires_delta: Optional[timedelta] = None
+    subject: str | Any,
+    role_id: str | int,
+    expires_delta: Optional[timedelta] = None,
+    *,
+    session_id: str | None = None,
 ) -> str:
     """Create a JWT access token with subject and role."""
     if expires_delta:
@@ -26,9 +31,15 @@ def create_access_token(
         expire = datetime.now(timezone.utc) + timedelta(
             minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
         )
-        
-    to_encode = {"exp": expire, "sub": str(subject), "role_id": str(role_id)}
-    
+
+    to_encode = {
+        "exp": expire,
+        "sub": str(subject),
+        "role_id": str(role_id),
+        "type": "access",
+        "sid": session_id,
+    }
+
     encoded_jwt = jwt.encode(
         to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
     )
@@ -41,22 +52,33 @@ def verify_access_token(token: str) -> Dict[str, Any]:
         payload = jwt.decode(
             token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
         )
+        if payload.get("type") != "access" or not payload.get("sid"):
+            raise ValueError("Invalid access token purpose or session")
         return payload
     except JWTError as e:
         raise ValueError(f"Invalid token: {str(e)}")
 
 
 def create_refresh_token(
-    subject: str | Any, expires_delta: Optional[timedelta] = None
+    subject: str | Any,
+    expires_delta: Optional[timedelta] = None,
+    *,
+    session_id: str | None = None,
 ) -> str:
     """Create a JWT refresh token valid for 7 days."""
     if expires_delta:
         expire = datetime.now(timezone.utc) + expires_delta
     else:
         expire = datetime.now(timezone.utc) + timedelta(days=7)
-        
-    to_encode = {"exp": expire, "sub": str(subject), "type": "refresh"}
-    
+
+    to_encode = {
+        "exp": expire,
+        "sub": str(subject),
+        "type": "refresh",
+        "sid": session_id,
+        "jti": secrets.token_urlsafe(32),
+    }
+
     encoded_jwt = jwt.encode(
         to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
     )
@@ -76,15 +98,22 @@ def verify_refresh_token(token: str) -> Dict[str, Any]:
         raise ValueError(f"Invalid refresh token: {str(e)}")
 
 
-def create_verification_token(email: str, expires_delta: Optional[timedelta] = None) -> str:
+def create_verification_token(
+    email: str, expires_delta: Optional[timedelta] = None
+) -> str:
     """Create a JWT verification token."""
     if expires_delta:
         expire = datetime.now(timezone.utc) + expires_delta
     else:
         expire = datetime.now(timezone.utc) + timedelta(hours=24)
-        
-    to_encode = {"exp": expire, "sub": email, "type": "verification"}
-    
+
+    to_encode = {
+        "exp": expire,
+        "sub": email,
+        "type": "verification",
+        "jti": secrets.token_urlsafe(32),
+    }
+
     encoded_jwt = jwt.encode(
         to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
     )
@@ -106,16 +135,18 @@ def verify_verification_token(token: str) -> str:
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """Middleware to add essential security headers for TISAX compliance."""
-    
+
     def __init__(self, app: ASGIApp):
         super().__init__(app)
-        
+
     async def dispatch(self, request: Request, call_next):
         response: Response = await call_next(request)
-        
+
         # Security headers (TISAX aligned)
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
-        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
-        
+        response.headers["Strict-Transport-Security"] = (
+            "max-age=31536000; includeSubDomains"
+        )
+
         return response

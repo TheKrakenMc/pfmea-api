@@ -1,8 +1,6 @@
 from typing import Any, Dict, List, Optional, Union
-
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.models.measurement_unit import MeasurementUnit
 from app.schemas.measurement_unit import MeasurementUnitCreate, MeasurementUnitUpdate
 
@@ -25,7 +23,7 @@ class MeasurementUnitService:
     ) -> MeasurementUnit:
         db_obj = MeasurementUnit(**obj_in.model_dump())
         db.add(db_obj)
-        await db.commit()
+        await db.flush()
         await db.refresh(db_obj)
         return db_obj
 
@@ -34,20 +32,20 @@ class MeasurementUnitService:
         db: AsyncSession,
         *,
         db_obj: MeasurementUnit,
-        obj_in: Union[MeasurementUnitUpdate, Dict[str, Any]]
+        obj_in: Union[MeasurementUnitUpdate, Dict[str, Any]],
     ) -> MeasurementUnit:
         obj_data = db_obj.__dict__
         if isinstance(obj_in, dict):
             update_data = obj_in
         else:
             update_data = obj_in.model_dump(exclude_unset=True)
-            
+
         for field in obj_data:
             if field in update_data:
                 setattr(db_obj, field, update_data[field])
-                
+
         db.add(db_obj)
-        await db.commit()
+        await db.flush()
         await db.refresh(db_obj)
         return db_obj
 
@@ -57,7 +55,7 @@ class MeasurementUnitService:
         obj = result.scalar_one_or_none()
         if obj:
             await db.delete(obj)
-            await db.commit()
+            await db.flush()
         return obj
 
 

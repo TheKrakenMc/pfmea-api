@@ -1,5 +1,8 @@
 import logging
+import html
 from app.core.config import get_settings
+import resend
+
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -194,7 +197,7 @@ EMAIL_TRANSLATIONS = {
     <p>Recuerda que nunca debes compartir tus credenciales de planta con terceros.</p>
     """,
         "fallback_text": "Este correo contiene formato HTML. Por favor, use un cliente compatible.",
-        "btn_verify": "Verificar mi Cuenta"
+        "btn_verify": "Verificar mi Cuenta",
     },
     "en": {
         "footer_dept": "Quality & Process Engineering Department",
@@ -249,8 +252,8 @@ EMAIL_TRANSLATIONS = {
     <p>Remember that you must never share your plant credentials with third parties.</p>
     """,
         "fallback_text": "This email contains HTML formatting. Please use a compatible client.",
-        "btn_verify": "Verify my Account"
-    }
+        "btn_verify": "Verify my Account",
+    },
 }
 
 # ─── Team Assignment Notification Templates ───────────────────────────────────
@@ -301,7 +304,7 @@ TEAM_ASSIGN_TEMPLATES = {
     <p style="text-align: center; margin-top: 30px;">
         <a href="{link}" class="btn">Abrir Documento PFMEA</a>
     </p>
-    """
+    """,
     },
     "en": {
         "subject": "[NEW ASSIGNMENT] PFMEA Project — {project_name}",
@@ -348,8 +351,8 @@ TEAM_ASSIGN_TEMPLATES = {
     <p style="text-align: center; margin-top: 30px;">
         <a href="{link}" class="btn">Open PFMEA Document</a>
     </p>
-    """
-    }
+    """,
+    },
 }
 
 # ─── Archive Notification Templates ───────────────────────────────────────────
@@ -477,7 +480,8 @@ async def send_team_assign_notification_email(
     """
     t = TEAM_ASSIGN_TEMPLATES.get(lang, TEAM_ASSIGN_TEMPLATES["es"])
 
-    body_html = t["body"].format(
+    body_html = safe_format(
+        t["body"],
         recipient_name=recipient_name or "Usuario",
         project_name=project_name,
         pfmea_id=pfmea_id,
@@ -485,9 +489,9 @@ async def send_team_assign_notification_email(
         customer=customer,
         role_in_team=role_in_team,
         department=department,
-        link=link
+        link=link,
     )
-    subject = t["subject"].format(project_name=project_name)
+    subject = safe_format(t["subject"], project_name=project_name)
     return await send_email(to_email, subject, t["subtitle"], body_html, lang)
 
 
@@ -511,11 +515,12 @@ async def send_archive_notification_email(
 
     eco_html = ""
     if eco_number:
-        eco_html = t["eco_row"].format(eco_number=eco_number)
+        eco_html = safe_format(t["eco_row"], eco_number=eco_number)
 
     all_succeeded = True
     for to_email, recipient_name in team_emails:
-        body_html = t["body"].format(
+        body_html = safe_format(
+            t["body"],
             recipient_name=recipient_name or "Equipo",
             doc_title=doc_title,
             doc_code=doc_code,
@@ -525,7 +530,7 @@ async def send_archive_notification_email(
             change_reason=change_reason,
             **{eco_row_key: eco_html},
         )
-        subject = t["subject"].format(doc_title=doc_title)
+        subject = safe_format(t["subject"], doc_title=doc_title)
         success = await send_email(to_email, subject, t["subtitle"], body_html, lang)
         if not success:
             all_succeeded = False
@@ -534,16 +539,18 @@ async def send_archive_notification_email(
 
 
 # pyrefly: ignore [missing-import]
-import resend
 
-async def send_email(to_email: str, subject: str, subtitle: str, body_html: str, lang: str = "en") -> bool:
+
+async def send_email(
+    to_email: str, subject: str, subtitle: str, body_html: str, lang: str = "en"
+) -> bool:
     """
     Asynchronously send an email using Resend API.
     Includes a fallback that prints to console for easy local testing.
     """
     settings = get_settings()
     t = EMAIL_TRANSLATIONS.get(lang, EMAIL_TRANSLATIONS["en"])
-    
+
     # 1. Format HTML using our responsive global template
     full_html = EMAIL_TEMPLATE.format(
         title=subject,
@@ -551,24 +558,16 @@ async def send_email(to_email: str, subject: str, subtitle: str, body_html: str,
         body_html=body_html,
         footer_dept=t["footer_dept"],
         footer_sys=t["footer_sys"],
-        footer_conf=t["footer_conf"]
+        footer_conf=t["footer_conf"],
     )
-    
+
     # 2. Check if Resend API key exists, else fall back to console print
     if not settings.RESEND_API_KEY:
-        logger.warning("RESEND_API_KEY not configured. Falling back to console notification print.")
-        print("\n" + "="*80)
-        print(f"📧 [NOTIFICATION MAIL FALLBACK]")
-        print(f"TO: {to_email}")
-        print(f"SUBJECT: {subject}")
-        print(f"SUBTITLE: {subtitle}")
-        print(f"BODY:\n{body_html.strip()}")
-        print("="*80 + "\n")
-        return True
+        logger.warning("Email delivery is not configured; notification was not sent")
+        return False
 
-    # 3. Send using Resend SDK
     resend.api_key = settings.RESEND_API_KEY
-    
+
     try:
         params = {
             "from": f"{settings.SMTP_FROM_NAME} <{settings.SMTP_FROM_EMAIL}>",
@@ -576,67 +575,97 @@ async def send_email(to_email: str, subject: str, subtitle: str, body_html: str,
             "subject": subject,
             "html": full_html,
         }
-        
-        email_response = resend.Emails.send(params)
+
+        resend.Emails.send(params)
         logger.info(f"Notification email successfully sent to {to_email} via Resend.")
         return True
     except Exception as e:
-        logger.error(f"Failed to send email to {to_email} via Resend: {e}")
+        logger.error("Email delivery failed (%s)", type(e).__name__)
         # Log to console so developer doesn't lose the token
-        print("\n" + "="*80)
-        print(f"⚠️ [RESEND DELIVERY FAILED - NOTIFICATION PRINT]")
-        print(f"TO: {to_email}")
-        print(f"SUBJECT: {subject}")
-        print(f"BODY:\n{body_html.strip()}")
-        print("="*80 + "\n")
+        logger.warning("Email delivery failed; no message body logged")
         return False
+
 
 async def send_otp_email(to_email: str, otp_code: str, lang: str = "en") -> bool:
     """
     Send OTP verification email for two-phase login.
     """
     t = EMAIL_TRANSLATIONS.get(lang, EMAIL_TRANSLATIONS["en"])
-    body_html = t["otp_body"].format(otp_code=otp_code)
-    return await send_email(to_email, t["otp_subject"], t["otp_subtitle"], body_html, lang)
+    body_html = safe_format(t["otp_body"], otp_code=otp_code)
+    return await send_email(
+        to_email, t["otp_subject"], t["otp_subtitle"], body_html, lang
+    )
 
-async def send_reset_password_otp_email(to_email: str, otp_code: str, lang: str = "en") -> bool:
+
+async def send_reset_password_otp_email(
+    to_email: str, otp_code: str, lang: str = "en"
+) -> bool:
     """
     Send OTP verification email for password reset.
     """
     t = EMAIL_TRANSLATIONS.get(lang, EMAIL_TRANSLATIONS["en"])
-    body_html = t["reset_pwd_body"].format(otp_code=otp_code)
-    return await send_email(to_email, t["reset_pwd_subject"], t["reset_pwd_subtitle"], body_html, lang)
+    body_html = safe_format(t["reset_pwd_body"], otp_code=otp_code)
+    return await send_email(
+        to_email, t["reset_pwd_subject"], t["reset_pwd_subtitle"], body_html, lang
+    )
 
-async def send_temp_password_email(to_email: str, temp_password: str, otp_code: str, lang: str = "en") -> bool:
+
+async def send_temp_password_email(
+    to_email: str, temp_password: str, otp_code: str, lang: str = "en"
+) -> bool:
     """
     Send temporary password and OTP validation email for password reset requests.
     """
     t = EMAIL_TRANSLATIONS.get(lang, EMAIL_TRANSLATIONS["en"])
-    body_html = t["temp_pwd_body"].format(temp_password=temp_password, otp_code=otp_code)
-    return await send_email(to_email, t["temp_pwd_subject"], t["temp_pwd_subtitle"], body_html, lang)
+    body_html = safe_format(
+        t["temp_pwd_body"], temp_password=temp_password, otp_code=otp_code
+    )
+    return await send_email(
+        to_email, t["temp_pwd_subject"], t["temp_pwd_subtitle"], body_html, lang
+    )
 
-async def send_welcome_email(to_email: str, temp_password: str, role_name: str, department_name: str, verification_link: str, lang: str = "en") -> bool:
+
+async def send_welcome_email(
+    to_email: str,
+    temp_password: str,
+    role_name: str,
+    department_name: str,
+    verification_link: str,
+    lang: str = "en",
+) -> bool:
     """
     Send a welcome email with static verification link, roles, and initial password.
     """
     t = EMAIL_TRANSLATIONS.get(lang, EMAIL_TRANSLATIONS["en"])
-    
+
     # Translate specific department name placeholders if needed, otherwise use as is
     if lang == "en" and department_name == "Sin Departamento":
         department_name = "No Department"
-        
+
     # Translate role name for display if necessary
     role_display = role_name
     if lang == "es":
-        if role_name == "Administrator": role_display = "Administrador"
-        elif role_name == "Viewer": role_display = "Visualizador"
+        if role_name == "Administrator":
+            role_display = "Administrador"
+        elif role_name == "Viewer":
+            role_display = "Visualizador"
         # Others like 'PFMEA Owner', 'Team Member' might stay English or be translated.
 
-    body_html = t["welcome_body"].format(
+    body_html = safe_format(
+        t["welcome_body"],
         role_name=role_display,
         department_name=department_name,
         temp_password=temp_password,
         verification_link=verification_link,
-        btn_verify=t["btn_verify"]
+        btn_verify=t["btn_verify"],
     )
-    return await send_email(to_email, t["welcome_subject"], t["welcome_subtitle"], body_html, lang)
+    return await send_email(
+        to_email, t["welcome_subject"], t["welcome_subtitle"], body_html, lang
+    )
+
+
+def safe_format(template: str, **values) -> str:
+    """Escape dynamic data before inserting it into email markup."""
+    return template.format(
+        **{key: html.escape(str(value), quote=True) for key, value in values.items()}
+    )

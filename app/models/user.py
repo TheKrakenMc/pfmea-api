@@ -1,13 +1,11 @@
 from __future__ import annotations
-
 from datetime import datetime
 from typing import TYPE_CHECKING, Optional
-
-from sqlalchemy import BigInteger, ForeignKey, String, func
+from sqlalchemy import Integer, BigInteger, ForeignKey, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
 from app.models.base import Base
 from app.models.mixins.soft_delete import SoftDeleteMixin
+
 
 if TYPE_CHECKING:
     from app.models.plant import Plant
@@ -20,10 +18,10 @@ class User(Base, SoftDeleteMixin):
 
     __tablename__ = "users"
 
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
-    role_id: Mapped[Optional[int]] = mapped_column(
-        BigInteger, ForeignKey("roles.id")
+    id: Mapped[int] = mapped_column(
+        BigInteger().with_variant(Integer, "sqlite"), primary_key=True
     )
+    role_id: Mapped[Optional[int]] = mapped_column(BigInteger, ForeignKey("roles.id"))
     plant_id: Mapped[Optional[int]] = mapped_column(
         BigInteger, ForeignKey("plants.id"), comment="Primary location of the user"
     )
@@ -36,7 +34,9 @@ class User(Base, SoftDeleteMixin):
     )
     is_active: Mapped[bool] = mapped_column(default=True, server_default="true")
     is_verified: Mapped[bool] = mapped_column(default=False, server_default="false")
-    must_change_password: Mapped[bool] = mapped_column(default=True, server_default="true")
+    must_change_password: Mapped[bool] = mapped_column(
+        default=True, server_default="true"
+    )
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         server_default=func.now(), onupdate=func.now()
@@ -44,14 +44,11 @@ class User(Base, SoftDeleteMixin):
 
     # Relationships
     role: Mapped[Optional["Role"]] = relationship(
-        back_populates="users",
-        foreign_keys=[role_id]
+        back_populates="users", foreign_keys=[role_id]
     )
     plant: Mapped[Optional["Plant"]] = relationship(
-        back_populates="users",
-        foreign_keys=[plant_id]
-     )
+        back_populates="users", foreign_keys=[plant_id]
+    )
     department: Mapped[Optional["Department"]] = relationship(
-        back_populates="users",
-        foreign_keys=[department_id]
+        back_populates="users", foreign_keys=[department_id]
     )

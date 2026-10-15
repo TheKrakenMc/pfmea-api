@@ -1,12 +1,10 @@
 from __future__ import annotations
-
 from datetime import datetime
 from typing import TYPE_CHECKING, Optional
-
-from sqlalchemy import BigInteger, Boolean, Float, ForeignKey, String, func
+from sqlalchemy import Integer, BigInteger, Boolean, Float, ForeignKey, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
 from app.models.base import Base
+
 
 if TYPE_CHECKING:
     from app.models.product import Product
@@ -23,7 +21,9 @@ class ProductParameter(Base):
 
     __tablename__ = "product_parameters"
 
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    id: Mapped[int] = mapped_column(
+        BigInteger().with_variant(Integer, "sqlite"), primary_key=True
+    )
     product_id: Mapped[int] = mapped_column(
         BigInteger,
         ForeignKey("products.id", ondelete="CASCADE"),
@@ -34,10 +34,15 @@ class ProductParameter(Base):
         String(255), nullable=False, comment="Parameter name, e.g. Temperatura"
     )
     measurement_unit_id: Mapped[Optional[int]] = mapped_column(
-        BigInteger, ForeignKey("measurement_units.id", ondelete="SET NULL"), nullable=True
+        BigInteger,
+        ForeignKey("measurement_units.id", ondelete="SET NULL"),
+        nullable=True,
     )
     technology_id: Mapped[Optional[int]] = mapped_column(
-        BigInteger, ForeignKey("technologies.id", ondelete="SET NULL"), nullable=True, index=True
+        BigInteger,
+        ForeignKey("technologies.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
     )
     target_value: Mapped[Optional[float]] = mapped_column(
         Float, comment="Nominal / target value"
@@ -63,9 +68,7 @@ class ProductParameter(Base):
     )
 
     # Relationships
-    product: Mapped[Optional["Product"]] = relationship(
-        back_populates="parameters"
-    )
+    product: Mapped[Optional["Product"]] = relationship(back_populates="parameters")
     measurement_unit: Mapped[Optional["MeasurementUnit"]] = relationship(
         back_populates="parameters",
         lazy="selectin",

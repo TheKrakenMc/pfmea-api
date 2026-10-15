@@ -1,13 +1,11 @@
 from __future__ import annotations
-
 from datetime import datetime
 from typing import TYPE_CHECKING, List, Optional
-
-from sqlalchemy import BigInteger, ForeignKey, String, func
+from sqlalchemy import Integer, BigInteger, ForeignKey, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
 from app.models.base import Base
 from app.models.mixins.soft_delete import SoftDeleteMixin
+
 
 if TYPE_CHECKING:
     from app.models.product import Product
@@ -21,7 +19,9 @@ class Plant(Base, SoftDeleteMixin):
 
     __tablename__ = "plants"
 
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    id: Mapped[int] = mapped_column(
+        BigInteger().with_variant(Integer, "sqlite"), primary_key=True
+    )
     region_id: Mapped[Optional[int]] = mapped_column(
         BigInteger, ForeignKey("regions.id")
     )
@@ -37,11 +37,9 @@ class Plant(Base, SoftDeleteMixin):
     # Relationships
     region: Mapped[Optional["Region"]] = relationship(back_populates="plants")
     users: Mapped[List["User"]] = relationship(
-        back_populates="plant",
-        foreign_keys="[User.plant_id]"
+        back_populates="plant", foreign_keys="[User.plant_id]"
     )
     products: Mapped[List["Product"]] = relationship(back_populates="plant")
     technologies: Mapped[List["Technology"]] = relationship(
-        secondary="plant_technologies",
-        back_populates="plants"
+        secondary="plant_technologies", back_populates="plants"
     )

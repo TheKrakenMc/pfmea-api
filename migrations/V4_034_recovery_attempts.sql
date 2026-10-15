@@ -1,0 +1,1 @@
+ALTER TABLE user_otps ADD COLUMN IF NOT EXISTS attempts integer NOT NULL DEFAULT 0;

@@ -43,6 +43,9 @@ from app.models.production_line import ProductionLine
 from app.models.product_parameter import ProductParameter
 from app.models.department import Department
 from app.models.technology_parameter import TechnologyParameter
+from app.models.auth_session import AuthSession, UserPlant, UsedVerificationToken
+
+
 __all__ = [
     "Base",
     "AuditLog",

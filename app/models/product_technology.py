@@ -1,12 +1,10 @@
 from __future__ import annotations
-
 from datetime import datetime
 from typing import TYPE_CHECKING, Optional
-
-from sqlalchemy import BigInteger, ForeignKey, UniqueConstraint, func
+from sqlalchemy import Integer, BigInteger, ForeignKey, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
 from app.models.base import Base
+
 
 if TYPE_CHECKING:
     from app.models.product import Product
@@ -18,12 +16,12 @@ class ProductTechnologyMapping(Base):
 
     __tablename__ = "product_technology_mappings"
     __table_args__ = (
-        UniqueConstraint(
-            "product_id", "technology_id", name="uq_product_technology"
-        ),
+        UniqueConstraint("product_id", "technology_id", name="uq_product_technology"),
     )
 
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    id: Mapped[int] = mapped_column(
+        BigInteger().with_variant(Integer, "sqlite"), primary_key=True
+    )
     product_id: Mapped[int] = mapped_column(
         BigInteger, ForeignKey("products.id", ondelete="CASCADE"), nullable=False
     )

@@ -1,0 +1,505 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+____________ test_action_validation_invalidation_and_atomic_audit _____________
+  + Exception Group Traceback (most recent call last):
+  |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\starlette\_utils.py", line 107, in create_collapsing_task_group
+  |     async with anyio.create_task_group() as tg:
+  |                ~~~~~~~~~~~~~~~~~~~~~~~^^
+  |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\anyio\_backends\_asyncio.py", line 847, in __aexit__
+  |     raise BaseExceptionGroup(
+  |         "unhandled errors in a TaskGroup", self._exceptions
+  |     ) from None
+  | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+  +-+---------------- 1 ----------------
+    | Traceback (most recent call last):
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\_pytest\runner.py", line 361, in from_call
+    |     result: TResult | None = func()
+    |                              ~~~~^^
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\_pytest\runner.py", line 250, in <lambda>
+    |     lambda: runtest_hook(item=item, **kwds),
+    |             ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\pluggy\_hooks.py", line 512, in __call__
+    |     return self._hookexec(self.name, self._hookimpls.copy(), kwargs, firstresult)
+    |            ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\pluggy\_manager.py", line 120, in _hookexec
+    |     return self._inner_hookexec(hook_name, methods, kwargs, firstresult)
+    |            ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\pluggy\_callers.py", line 167, in _multicall
+    |     raise exception
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\pluggy\_callers.py", line 139, in _multicall
+    |     teardown.throw(exception)
+    |     ~~~~~~~~~~~~~~^^^^^^^^^^^
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\_pytest\logging.py", line 865, in pytest_runtest_call
+    |     yield
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\pluggy\_callers.py", line 139, in _multicall
+    |     teardown.throw(exception)
+    |     ~~~~~~~~~~~~~~^^^^^^^^^^^
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\_pytest\capture.py", line 900, in pytest_runtest_call
+    |     return (yield)
+    |             ^^^^^
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\pluggy\_callers.py", line 139, in _multicall
+    |     teardown.throw(exception)
+    |     ~~~~~~~~~~~~~~^^^^^^^^^^^
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\_pytest\skipping.py", line 268, in pytest_runtest_call
+    |     return (yield)
+    |             ^^^^^
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\pluggy\_callers.py", line 121, in _multicall
+    |     res = hook_impl.function(*args)
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\_pytest\runner.py", line 184, in pytest_runtest_call
+    |     item.runtest()
+    |     ~~~~~~~~~~~~^^
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\pytest_asyncio\plugin.py", line 569, in runtest
+    |     super().runtest()
+    |     ~~~~~~~~~~~~~~~^^
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\_pytest\python.py", line 1707, in runtest
+    |     self.ihook.pytest_pyfunc_call(pyfuncitem=self)
+    |     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\pluggy\_hooks.py", line 512, in __call__
+    |     return self._hookexec(self.name, self._hookimpls.copy(), kwargs, firstresult)
+    |            ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\pluggy\_manager.py", line 120, in _hookexec
+    |     return self._inner_hookexec(hook_name, methods, kwargs, firstresult)
+    |            ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\pluggy\_callers.py", line 167, in _multicall
+    |     raise exception
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\pluggy\_callers.py", line 139, in _multicall
+    |     teardown.throw(exception)
+    |     ~~~~~~~~~~~~~~^^^^^^^^^^^
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\pluggy\_callers.py", line 53, in run_old_style_hookwrapper
+    |     return result.get_result()
+    |            ~~~~~~~~~~~~~~~~~^^
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\pluggy\_result.py", line 103, in get_result
+    |     raise exc.with_traceback(tb)
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\pluggy\_callers.py", line 38, in run_old_style_hookwrapper
+    |     res = yield
+    |           ^^^^^
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\pluggy\_callers.py", line 121, in _multicall
+    |     res = hook_impl.function(*args)
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\_pytest\python.py", line 167, in pytest_pyfunc_call
+    |     result = testfunction(**testargs)
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\pytest_asyncio\plugin.py", line 905, in inner
+    |     runner.run(coro, context=context)
+    |     ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\antonio.tlaque\AppData\Local\Python\pythoncore-3.14-64\Lib\asyncio\runners.py", line 128, in run
+    |     return self._loop.run_until_complete(task)
+    |            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+    |   File "C:\Users\antonio.tlaque\AppData\Local\Python\pythoncore-3.14-64\Lib\asyncio\base_events.py", line 720, in run_until_complete
+    |     return future.result()
+    |            ~~~~~~~~~~~~~^^
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\tests\test_audit_regressions.py", line 23, in test_action_validation_invalidation_and_atomic_audit
+    |     confirmed=await client.post(f"/api/v1/pfmea-project/{doc.id}/worksheet/{row.id}/confirm-action",headers={"If-Match":"1"})
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\httpx\_client.py", line 1859, in post
+    |     return await self.request(
+    |            ^^^^^^^^^^^^^^^^^^^
+    |     ...<13 lines>...
+    |     )
+    |     ^
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\httpx\_client.py", line 1540, in request
+    |     return await self.send(request, auth=auth, follow_redirects=follow_redirects)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\httpx\_client.py", line 1629, in send
+    |     response = await self._send_handling_auth(
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |     ...<4 lines>...
+    |     )
+    |     ^
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\httpx\_client.py", line 1657, in _send_handling_auth
+    |     response = await self._send_handling_redirects(
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |     ...<3 lines>...
+    |     )
+    |     ^
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\httpx\_client.py", line 1694, in _send_handling_redirects
+    |     response = await self._send_single_request(request)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\httpx\_client.py", line 1730, in _send_single_request
+    |     response = await transport.handle_async_request(request)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\httpx\_transports\asgi.py", line 170, in handle_async_request
+    |     await self.app(scope, receive, send)
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\fastapi\applications.py", line 1215, in __call__
+    |     await super().__call__(scope, receive, send)
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\starlette\applications.py", line 96, in __call__
+    |     await self.middleware_stack(scope, receive, send)
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    |     raise exc
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    |     await self.app(scope, receive, _send)
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\fastapi\telemetry\_asgi.py", line 151, in __call__
+    |     await self.app(scope, receive, send)
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\starlette\middleware\cors.py", line 91, in __call__
+    |     await self.simple_response(scope, receive, send, request_headers=headers)
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\starlette\middleware\cors.py", line 149, in simple_response
+    |     await self.app(scope, receive, send)
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\starlette\middleware\base.py", line 197, in __call__
+    |     response = await self.dispatch_func(request, call_next)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\app\middleware\csrf.py", line 14, in dispatch
+    |     return await call_next(request)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\starlette\middleware\base.py", line 173, in call_next
+    |     raise app_exc from app_exc.__cause__ or app_exc.__context__
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\starlette\middleware\base.py", line 149, in coro
+    |     await self.app(scope, receive_or_disconnect, send_no_error)
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\starlette\middleware\base.py", line 197, in __call__
+    |     response = await self.dispatch_func(request, call_next)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\app\core\security.py", line 118, in dispatch
+    |     response: Response = await call_next(request)
+    |                          ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\starlette\middleware\base.py", line 173, in call_next
+    |     raise app_exc from app_exc.__cause__ or app_exc.__context__
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\starlette\middleware\base.py", line 149, in coro
+    |     await self.app(scope, receive_or_disconnect, send_no_error)
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\starlette\middleware\base.py", line 197, in __call__
+    |     response = await self.dispatch_func(request, call_next)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\slowapi\middleware.py", line 128, in dispatch
+    |     return await call_next(request)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\starlette\middleware\base.py", line 173, in call_next
+    |     raise app_exc from app_exc.__cause__ or app_exc.__context__
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\starlette\middleware\base.py", line 149, in coro
+    |     await self.app(scope, receive_or_disconnect, send_no_error)
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    |     await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    |     raise exc
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    |     await app(scope, receive, sender)
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    |     await self.app(scope, receive, send)
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\starlette\routing.py", line 676, in __call__
+    |     await self.middleware_stack(scope, receive, send)
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\fastapi\routing.py", line 2786, in app
+    |     await route.handle(scope, receive, send)
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\fastapi\routing.py", line 1817, in handle
+    |     await self.original_router.handle(scope, receive, send)
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\fastapi\routing.py", line 2869, in handle
+    |     await included_router._handle_selected(scope, receive, send)
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\fastapi\routing.py", line 1843, in _handle_selected
+    |     await original_route.handle(scope, receive, send)
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\fastapi\routing.py", line 1308, in handle
+    |     await effective_context.app(scope, receive, send)
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\fastapi\routing.py", line 165, in app
+    |     await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    |     raise exc
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    |     await app(scope, receive, sender)
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\fastapi\routing.py", line 151, in app
+    |     response = await f(request)
+    |                ^^^^^^^^^^^^^^^^
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\fastapi\routing.py", line 727, in app
+    |     raw_response = await run_endpoint_function(
+    |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |     ...<3 lines>...
+    |     )
+    |     ^
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\fastapi\routing.py", line 360, in run_endpoint_function
+    |     return await dependant.call(**values)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\app\api\v1\endpoints\pfmea_project.py", line 470, in confirm_action
+    |     return WorksheetRowRead.model_validate(row)
+    |            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+    |   File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\pydantic\main.py", line 732, in model_validate
+    |     return cls.__pydantic_validator__.validate_python(
+    |            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+    |         obj,
+    |         ^^^^
+    |     ...<5 lines>...
+    |         by_name=by_name,
+    |         ^^^^^^^^^^^^^^^^
+    |     )
+    |     ^
+    | pydantic_core._pydantic_core.ValidationError: 1 validation error for WorksheetRowRead
+    | responsible_person_name
+    |   Error extracting attribute: StatementError: (sqlalchemy.exc.MissingGreenlet) greenlet_spawn has not been called; can't call await_() here. Was IO attempted in an unexpected place?
+    | [SQL: SELECT users.id, users.role_id, users.plant_id, users.full_name, users.email, users.password_hash, users.employment_position, users.department_id, users.is_active, users.is_verified, users.must_change_password, users.created_at, users.updated_at, users.deleted_at, users.deleted_by 
+    | FROM users 
+    | WHERE users.id = ?]
+    | [parameters: [{'pk_1': 1}]]
+    | (Background on this error at: https://sqlalche.me/e/21/xd2s) [type=get_attribute_error, input_value=<app.models.pfmea_workshe...t at 0x0000024D0837C690>, input_type=PfmeaWorksheetRow]
+    |     For further information visit https://errors.pydantic.dev/2.13/v/get_attribute_error
+    +------------------------------------
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\tests\test_audit_regressions.py", line 23, in test_action_validation_invalidation_and_atomic_audit
+    confirmed=await client.post(f"/api/v1/pfmea-project/{doc.id}/worksheet/{row.id}/confirm-action",headers={"If-Match":"1"})
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\httpx\_client.py", line 1859, in post
+    return await self.request(
+           ^^^^^^^^^^^^^^^^^^^
+    ...<13 lines>...
+    )
+    ^
+  File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\httpx\_client.py", line 1540, in request
+    return await self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\httpx\_client.py", line 1629, in send
+    response = await self._send_handling_auth(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    )
+    ^
+  File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\httpx\_client.py", line 1657, in _send_handling_auth
+    response = await self._send_handling_redirects(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+    )
+    ^
+  File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\httpx\_client.py", line 1694, in _send_handling_redirects
+    response = await self._send_single_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\httpx\_client.py", line 1730, in _send_single_request
+    response = await transport.handle_async_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\httpx\_transports\asgi.py", line 170, in handle_async_request
+    await self.app(scope, receive, send)
+  File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\fastapi\applications.py", line 1215, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\starlette\applications.py", line 96, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\fastapi\telemetry\_asgi.py", line 151, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\starlette\middleware\cors.py", line 91, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\starlette\middleware\cors.py", line 149, in simple_response
+    await self.app(scope, receive, send)
+  File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\starlette\middleware\base.py", line 197, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\app\middleware\csrf.py", line 14, in dispatch
+    return await call_next(request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\starlette\middleware\base.py", line 173, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\starlette\middleware\base.py", line 149, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\starlette\middleware\base.py", line 197, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\app\core\security.py", line 118, in dispatch
+    response: Response = await call_next(request)
+                         ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\starlette\middleware\base.py", line 173, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\starlette\middleware\base.py", line 149, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\starlette\middleware\base.py", line 197, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\slowapi\middleware.py", line 128, in dispatch
+    return await call_next(request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\starlette\middleware\base.py", line 173, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\starlette\middleware\base.py", line 149, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\starlette\routing.py", line 676, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\fastapi\routing.py", line 2786, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\fastapi\routing.py", line 1817, in handle
+    await self.original_router.handle(scope, receive, send)
+  File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\fastapi\routing.py", line 2869, in handle
+    await included_router._handle_selected(scope, receive, send)
+  File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\fastapi\routing.py", line 1843, in _handle_selected
+    await original_route.handle(scope, receive, send)
+  File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\fastapi\routing.py", line 1308, in handle
+    await effective_context.app(scope, receive, send)
+  File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\fastapi\routing.py", line 165, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\fastapi\routing.py", line 151, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\fastapi\routing.py", line 727, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+    )
+    ^
+  File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\fastapi\routing.py", line 360, in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\app\api\v1\endpoints\pfmea_project.py", line 470, in confirm_action
+    return WorksheetRowRead.model_validate(row)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\pydantic\main.py", line 732, in model_validate
+    return cls.__pydantic_validator__.validate_python(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        obj,
+        ^^^^
+    ...<5 lines>...
+        by_name=by_name,
+        ^^^^^^^^^^^^^^^^
+    )
+    ^
+pydantic_core._pydantic_core.ValidationError: 1 validation error for WorksheetRowRead
+responsible_person_name
+  Error extracting attribute: StatementError: (sqlalchemy.exc.MissingGreenlet) greenlet_spawn has not been called; can't call await_() here. Was IO attempted in an unexpected place?
+[SQL: SELECT users.id, users.role_id, users.plant_id, users.full_name, users.email, users.password_hash, users.employment_position, users.department_id, users.is_active, users.is_verified, users.must_change_password, users.created_at, users.updated_at, users.deleted_at, users.deleted_by 
+FROM users 
+WHERE users.id = ?]
+[parameters: [{'pk_1': 1}]]
+(Background on this error at: https://sqlalche.me/e/21/xd2s) [type=get_attribute_error, input_value=<app.models.pfmea_workshe...t at 0x0000024D0837C690>, input_type=PfmeaWorksheetRow]
+    For further information visit https://errors.pydantic.dev/2.13/v/get_attribute_error
+
+The above exception was the direct cause of the following exception:
+tests\test_audit_regressions.py:23: in test_action_validation_invalidation_and_atomic_audit
+    confirmed=await client.post(f"/api/v1/pfmea-project/{doc.id}/worksheet/{row.id}/confirm-action",headers={"If-Match":"1"})
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\httpx\_client.py:1859: in post
+    return await self.request(
+.venv\Lib\site-packages\httpx\_client.py:1540: in request
+    return await self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\httpx\_client.py:1629: in send
+    response = await self._send_handling_auth(
+.venv\Lib\site-packages\httpx\_client.py:1657: in _send_handling_auth
+    response = await self._send_handling_redirects(
+.venv\Lib\site-packages\httpx\_client.py:1694: in _send_handling_redirects
+    response = await self._send_single_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\httpx\_client.py:1730: in _send_single_request
+    response = await transport.handle_async_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\httpx\_transports\asgi.py:170: in handle_async_request
+    await self.app(scope, receive, send)
+.venv\Lib\site-packages\fastapi\applications.py:1215: in __call__
+    await super().__call__(scope, receive, send)
+.venv\Lib\site-packages\starlette\applications.py:96: in __call__
+    await self.middleware_stack(scope, receive, send)
+.venv\Lib\site-packages\starlette\middleware\errors.py:186: in __call__
+    raise exc
+.venv\Lib\site-packages\starlette\middleware\errors.py:164: in __call__
+    await self.app(scope, receive, _send)
+.venv\Lib\site-packages\fastapi\telemetry\_asgi.py:151: in __call__
+    await self.app(scope, receive, send)
+.venv\Lib\site-packages\starlette\middleware\cors.py:91: in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+.venv\Lib\site-packages\starlette\middleware\cors.py:149: in simple_response
+    await self.app(scope, receive, send)
+.venv\Lib\site-packages\starlette\middleware\base.py:197: in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app\middleware\csrf.py:14: in dispatch
+    return await call_next(request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\starlette\middleware\base.py:173: in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+.venv\Lib\site-packages\starlette\middleware\base.py:149: in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+.venv\Lib\site-packages\starlette\middleware\base.py:197: in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app\core\security.py:118: in dispatch
+    response: Response = await call_next(request)
+                         ^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\starlette\middleware\base.py:173: in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+.venv\Lib\site-packages\starlette\middleware\base.py:149: in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+.venv\Lib\site-packages\starlette\middleware\base.py:197: in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\slowapi\middleware.py:128: in dispatch
+    return await call_next(request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\starlette\middleware\base.py:173: in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+.venv\Lib\site-packages\starlette\middleware\base.py:149: in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+.venv\Lib\site-packages\starlette\middleware\exceptions.py:63: in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+.venv\Lib\site-packages\starlette\_exception_handler.py:53: in wrapped_app
+    raise exc
+.venv\Lib\site-packages\starlette\_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+.venv\Lib\site-packages\fastapi\middleware\asyncexitstack.py:18: in __call__
+    await self.app(scope, receive, send)
+.venv\Lib\site-packages\starlette\routing.py:676: in __call__
+    await self.middleware_stack(scope, receive, send)
+.venv\Lib\site-packages\fastapi\routing.py:2786: in app
+    await route.handle(scope, receive, send)
+.venv\Lib\site-packages\fastapi\routing.py:1817: in handle
+    await self.original_router.handle(scope, receive, send)
+.venv\Lib\site-packages\fastapi\routing.py:2869: in handle
+    await included_router._handle_selected(scope, receive, send)
+.venv\Lib\site-packages\fastapi\routing.py:1843: in _handle_selected
+    await original_route.handle(scope, receive, send)
+.venv\Lib\site-packages\fastapi\routing.py:1308: in handle
+    await effective_context.app(scope, receive, send)
+.venv\Lib\site-packages\fastapi\routing.py:165: in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+.venv\Lib\site-packages\starlette\_exception_handler.py:53: in wrapped_app
+    raise exc
+.venv\Lib\site-packages\starlette\_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+.venv\Lib\site-packages\fastapi\routing.py:151: in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\fastapi\routing.py:727: in app
+    raw_response = await run_endpoint_function(
+.venv\Lib\site-packages\fastapi\routing.py:360: in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+app\api\v1\endpoints\pfmea_project.py:470: in confirm_action
+    return WorksheetRowRead.model_validate(row)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   pydantic_core._pydantic_core.ValidationError: 1 validation error for WorksheetRowRead
+E   responsible_person_name
+E     Error extracting attribute: StatementError: (sqlalchemy.exc.MissingGreenlet) greenlet_spawn has not been called; can't call await_() here. Was IO attempted in an unexpected place?
+E   [SQL: SELECT users.id, users.role_id, users.plant_id, users.full_name, users.email, users.password_hash, users.employment_position, users.department_id, users.is_active, users.is_verified, users.must_change_password, users.created_at, users.updated_at, users.deleted_at, users.deleted_by 
+E   FROM users 
+E   WHERE users.id = ?]
+E   [parameters: [{'pk_1': 1}]]
+E   (Background on this error at: https://sqlalche.me/e/21/xd2s) [type=get_attribute_error, input_value=<app.models.pfmea_workshe...t at 0x0000024D0837C690>, input_type=PfmeaWorksheetRow]
+E       For further information visit https://errors.pydantic.dev/2.13/v/get_attribute_error
+============================== warnings summary ===============================
+.venv\Lib\site-packages\slowapi\extension.py:720
+.venv\Lib\site-packages\slowapi\extension.py:720
+.venv\Lib\site-packages\slowapi\extension.py:720
+.venv\Lib\site-packages\slowapi\extension.py:720
+.venv\Lib\site-packages\slowapi\extension.py:720
+  C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\slowapi\extension.py:720: DeprecationWarning: 'asyncio.iscoroutinefunction' is deprecated and slated for removal in Python 3.16; use inspect.iscoroutinefunction() instead
+    if asyncio.iscoroutinefunction(func):
+
+app\schemas\measurement_unit.py:17
+  C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\app\schemas\measurement_unit.py:17: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class MeasurementUnit(MeasurementUnitBase):
+
+app\schemas\machinery.py:22
+  C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\app\schemas\machinery.py:22: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class MachineryRead(MachineryBase):
+
+app\schemas\plant.py:9
+  C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\app\schemas\plant.py:9: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class PlantRead(PlantBase):
+
+tests/test_audit_regressions.py::test_action_validation_invalidation_and_atomic_audit
+  <sys>:0: SAWarning: Can't sort tables for DROP; an unresolvable foreign key dependency exists between tables: departments, plants, regions, roles, users; and backend does not support ALTER.  To restore at least a partial sort, apply use_alter=True to ForeignKey and ForeignKeyConstraint objects involved in the cycle to mark these as known cycles that will be ignored.
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_audit_regressions.py::test_action_validation_invalidation_and_atomic_audit
+1 failed, 9 warnings in 1.21s

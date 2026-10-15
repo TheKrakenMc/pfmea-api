@@ -59,7 +59,7 @@ BEGIN
     ) THEN
         ALTER TABLE pfmea_headers
             ADD CONSTRAINT ck_pfmea_headers_moc_status
-            CHECK (moc_status IN ('Draft', 'Submitted for Review', 'Approved', 'Archived'));
+            CHECK (moc_status IN ('Draft', 'In Review', 'Submitted for Review', 'Approved', 'Archived'));
     END IF;
 END$$;
 

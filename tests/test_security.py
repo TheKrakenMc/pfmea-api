@@ -1,36 +1,80 @@
 import pytest
-import asyncio
-from httpx import AsyncClient
+from tests.test_auth import create_account, authenticate
+
 
 @pytest.mark.asyncio
-async def test_rbac_viewer_forbidden(client: AsyncClient, test_user, valid_viewer_token: str):
-    """Verify that a user with Viewer role (2) gets 403 when trying to POST to /flowcharts/."""
-    # "PFMEA Owner" role in mock is string 'PFMEA Owner'.
-    # Actually, in conftest we set the viewer token role_id="2".
-    # And RoleChecker expects `['PFMEA Owner']`.
-    # It will compare "2" not in `['PFMEA Owner']` -> 403 Forbidden.
-    client.cookies.set("access_token", valid_viewer_token)
+async def test_rbac_viewer_forbidden(client, db_session):
+    await create_account(db_session, "Viewer")
+    await authenticate(client)
     response = await client.post(
-        "/api/v1/flowcharts/",
-        json={"product_id": 1, "name": "Test Flowchart"}
+        "/api/v1/flowcharts/", json={"product_id": 1, "title": "Test"}
     )
     assert response.status_code == 403
-    assert response.json()["detail"] == "Operation not permitted"
+
 
 @pytest.mark.asyncio
-async def test_rate_limiting(client: AsyncClient, test_user):
-    """Test that the auth login endpoint blocks requests after limit (5/minute)."""
-    # Send 6 rapid requests to /api/v1/auth/login. Limit is 5/min.
-    # The first 5 might fail due to bad credentials or succeed, but the 6th should be 429.
-    
-    responses = []
-    for _ in range(6):
-        res = await client.post(
+async def test_rate_limiting(client):
+    responses = [
+        await client.post(
             "/api/v1/auth/login",
-            json={"email": "nonexistent@test.com", "password": "anypassword"}
+            json={"email": "none@example.com", "password": "wrong"},
         )
-        responses.append(res.status_code)
-    
-    # At least the last response must be 429
-    assert 429 in responses
-    assert responses[-1] == 429
+        for _ in range(6)
+    ]
+    assert responses[-1].status_code == 429
+
+
+@pytest.mark.asyncio
+async def test_all_private_routes_require_auth(client):
+    from app.main import app
+
+    public = {
+        "/api/v1/auth/csrf",
+        "/api/v1/auth/login",
+        "/api/v1/auth/forgot-password",
+        "/api/v1/auth/reset-password",
+        "/api/v1/auth/verify-email",
+        "/api/v1/auth/refresh",
+        "/api/v1/health",
+        "/api/v1/readiness",
+    }
+    for route, operations in app.openapi()["paths"].items():
+        if not route.startswith("/api/v1") or route in public:
+            continue
+        import re
+
+        path = re.sub(r"\{[^}]+\}", "1", route)
+        for method in operations:
+            if method not in {"get", "post", "put", "patch", "delete"}:
+                continue
+            response = await client.request(method, path, json={})
+            assert response.status_code == 401, (
+                method,
+                path,
+                response.status_code,
+                response.text,
+            )
+
+
+@pytest.mark.asyncio
+async def test_viewer_cannot_write_any_private_endpoint(client, db_session):
+    import re
+    from tests.test_auth import create_account, authenticate
+    from app.main import app
+
+    await create_account(db_session, "Viewer")
+    await authenticate(client)
+    for path, operations in app.openapi()["paths"].items():
+        if not path.startswith("/api/v1/") or "/auth/" in path:
+            continue
+        target = re.sub(r"\{[^}]+\}", "1", path)
+        for method in operations:
+            if method not in {"post", "put", "patch", "delete"}:
+                continue
+            response = await client.request(method.upper(), target, json={})
+            assert response.status_code == 403, (
+                method,
+                path,
+                response.status_code,
+                response.text,
+            )

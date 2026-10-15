@@ -1,13 +1,19 @@
 from datetime import datetime
 from typing import Optional
-
 from pydantic import BaseModel, ConfigDict, Field
 
 
 class ProductionLineBase(BaseModel):
-    name: str = Field(..., description="The name of the production line", max_length=255)
-    description: Optional[str] = Field(None, description="Optional description of the production line")
-    is_active: bool = Field(default=True, description="Whether the production line is active and available for selection")
+    name: str = Field(
+        ..., description="The name of the production line", max_length=255
+    )
+    description: Optional[str] = Field(
+        None, description="Optional description of the production line"
+    )
+    is_active: bool = Field(
+        default=True,
+        description="Whether the production line is active and available for selection",
+    )
 
 
 class ProductionLineCreate(ProductionLineBase):
@@ -15,9 +21,15 @@ class ProductionLineCreate(ProductionLineBase):
 
 
 class ProductionLineUpdate(BaseModel):
-    name: Optional[str] = Field(None, description="The name of the production line", max_length=255)
-    description: Optional[str] = Field(None, description="Optional description of the production line")
-    is_active: Optional[bool] = Field(None, description="Whether the production line is active")
+    name: Optional[str] = Field(
+        None, description="The name of the production line", max_length=255
+    )
+    description: Optional[str] = Field(
+        None, description="Optional description of the production line"
+    )
+    is_active: Optional[bool] = Field(
+        None, description="Whether the production line is active"
+    )
 
 
 class ProductionLineRead(ProductionLineBase):

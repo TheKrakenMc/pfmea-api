@@ -1,15 +1,13 @@
 """ControlPlan model — quality control document derived from PFMEA analysis."""
 
 from __future__ import annotations
-
 from datetime import date, datetime
 from typing import TYPE_CHECKING, List, Optional
-
 from sqlalchemy import BigInteger, Date, ForeignKey, Index, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
 from app.models.base import Base
 from app.models.mixins.soft_delete import SoftDeleteMixin
+
 
 if TYPE_CHECKING:
     from app.models.control_plan_item import ControlPlanItem
@@ -26,7 +24,9 @@ class ControlPlan(Base, SoftDeleteMixin):
         Index("ix_control_plans_owner_id", "owner_id"),
     )
 
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    id: Mapped[int] = mapped_column(
+        BigInteger().with_variant(Integer, "sqlite"), primary_key=True
+    )
     pfmea_project_id: Mapped[int] = mapped_column(
         BigInteger, ForeignKey("pfmea_headers.id"), nullable=False
     )
@@ -39,8 +39,10 @@ class ControlPlan(Base, SoftDeleteMixin):
         BigInteger, ForeignKey("users.id"), nullable=False
     )
     status: Mapped[Optional[str]] = mapped_column(
-        String, default="Draft", server_default="'Draft'"
+        String, default="Draft", server_default="Draft"
     )
+    lock_version: Mapped[int] = mapped_column(default=1, server_default="1")
+    needs_review: Mapped[bool] = mapped_column(default=False, server_default="false")
     version: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
     start_date: Mapped[date] = mapped_column(Date, nullable=False)
     last_revision_date: Mapped[Optional[date]] = mapped_column(Date)

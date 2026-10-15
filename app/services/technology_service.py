@@ -1,12 +1,9 @@
 from typing import List, Optional, Tuple
-
 from fastapi import HTTPException, status
 from sqlalchemy import select, func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-
 from app.models.technology import Technology
-
 from app.models.flowchart_step import FlowchartStep
 from app.models.product_technology import ProductTechnologyMapping
 from app.models.plant import Plant
@@ -23,6 +20,7 @@ from app.models.technology_parameter import TechnologyParameter
 
 # ── Technology CRUD ─────────────────────────────────────────────────────────
 
+
 async def list_technologies(
     db: AsyncSession,
     skip: int = 0,
@@ -32,8 +30,12 @@ async def list_technologies(
 ) -> List[Technology]:
     stmt = (
         select(Technology)
-        .options(selectinload(Technology.parameters.and_(TechnologyParameter.is_active == True)))
-        .where(Technology.is_active == True)
+        .options(
+            selectinload(
+                Technology.parameters.and_(TechnologyParameter.is_active.is_(True))
+            )
+        )
+        .where(Technology.is_active.is_(True))
     )
 
     if q:
@@ -55,8 +57,12 @@ async def list_technologies(
 async def get_technology(db: AsyncSession, tech_id: int) -> Technology:
     stmt = (
         select(Technology)
-        .options(selectinload(Technology.parameters.and_(TechnologyParameter.is_active == True)))
-        .where(Technology.id == tech_id, Technology.is_active == True)
+        .options(
+            selectinload(
+                Technology.parameters.and_(TechnologyParameter.is_active.is_(True))
+            )
+        )
+        .where(Technology.id == tech_id, Technology.is_active.is_(True))
     )
     result = await db.execute(stmt)
     tech = result.scalars().first()
@@ -86,8 +92,8 @@ async def create_technology(
         db_tech.plants = list(plants)
 
     db.add(db_tech)
-    await db.commit()
-    
+    await db.flush()
+
     # Reload with relationships to prevent MissingGreenlet in response serialization
     return await get_technology(db, db_tech.id)
 
@@ -111,8 +117,8 @@ async def update_technology(
         db_tech.plants = list(plants)
 
     db_tech.updated_by = user_id
-    await db.commit()
-    
+    await db.flush()
+
     # Reload with relationships to prevent MissingGreenlet in response serialization
     return await get_technology(db, tech_id)
 
@@ -137,9 +143,7 @@ async def check_technology_dependencies(
     return fc_count, prod_count
 
 
-async def delete_technology(
-    db: AsyncSession, tech_id: int, user_id: int
-) -> Technology:
+async def delete_technology(db: AsyncSession, tech_id: int, user_id: int) -> Technology:
     db_tech = await get_technology(db, tech_id)
 
     fc_count, prod_count = await check_technology_dependencies(db, tech_id)
@@ -156,16 +160,14 @@ async def delete_technology(
 
     db_tech.is_active = False
     db_tech.updated_by = user_id
-    await db.commit()
+    await db.flush()
     return db_tech
-
 
 
 # ── Technology Parameters CRUD ──────────────────────────────────────────────
 
-async def list_parameters(
-    db: AsyncSession, tech_id: int
-) -> List[TechnologyParameter]:
+
+async def list_parameters(db: AsyncSession, tech_id: int) -> List[TechnologyParameter]:
     """Return all active parameters for a technology."""
     await get_technology(db, tech_id)
 
@@ -174,7 +176,7 @@ async def list_parameters(
         .options(selectinload(TechnologyParameter.measurement_unit))
         .where(
             TechnologyParameter.technology_id == tech_id,
-            TechnologyParameter.is_active == True,
+            TechnologyParameter.is_active.is_(True),
         )
         .order_by(TechnologyParameter.id)
     )
@@ -191,11 +193,15 @@ async def create_parameter(
 
     param = TechnologyParameter(technology_id=tech_id, **payload.model_dump())
     db.add(param)
-    await db.commit()
+    await db.flush()
     await db.refresh(param)
-    
+
     # Reload with relationships
-    stmt = select(TechnologyParameter).options(selectinload(TechnologyParameter.measurement_unit)).where(TechnologyParameter.id == param.id)
+    stmt = (
+        select(TechnologyParameter)
+        .options(selectinload(TechnologyParameter.measurement_unit))
+        .where(TechnologyParameter.id == param.id)
+    )
     res = await db.execute(stmt)
     return res.scalars().first()
 
@@ -219,10 +225,14 @@ async def update_parameter(
     for key, value in update_data.items():
         setattr(param, key, value)
 
-    await db.commit()
-    
+    await db.flush()
+
     # Reload with relationships
-    stmt = select(TechnologyParameter).options(selectinload(TechnologyParameter.measurement_unit)).where(TechnologyParameter.id == param.id)
+    stmt = (
+        select(TechnologyParameter)
+        .options(selectinload(TechnologyParameter.measurement_unit))
+        .where(TechnologyParameter.id == param.id)
+    )
     res = await db.execute(stmt)
     return res.scalars().first()
 
@@ -239,4 +249,4 @@ async def delete_parameter(db: AsyncSession, param_id: int) -> None:
         )
 
     param.is_active = False
-    await db.commit()
+    await db.flush()

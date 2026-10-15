@@ -10,17 +10,14 @@ Covers:
 """
 
 from __future__ import annotations
-
 import logging
 from datetime import date, datetime, timezone
 from typing import Optional
-
 from fastapi import HTTPException, status
-from sqlalchemy import case, delete, func, select, text
+from sqlalchemy import case, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
-
 from app.models.audit_log import AuditLog
 from app.models.flowchart import Flowchart
 from app.models.flowchart_step import FlowchartStep
@@ -29,8 +26,6 @@ from app.models.pfmea_team_member import PfmeaTeamMember
 from app.models.pfmea_worksheet_row import PfmeaWorksheetRow
 from app.models.plant import Plant
 from app.models.product import Product
-from app.models.technology import Technology
-from app.models.machinery import Machinery
 from app.schemas.pfmea import (
     PfmeaHeaderCreate,
     PfmeaHeaderUpdate,
@@ -38,6 +33,7 @@ from app.schemas.pfmea import (
     WorksheetRowCreate,
     WorksheetRowUpdate,
 )
+
 
 logger = logging.getLogger("pfmea.service")
 
@@ -61,55 +57,119 @@ logger = logging.getLogger("pfmea.service")
 #     - Severity ≤ 2
 #   M (Medium): Everything else
 
+
 def calculate_action_priority(severity: int, occurrence: int, detection: int) -> str:
     """Calculate Action Priority per AIAG-VDA 2019 methodology.
 
     Returns:
         "H" (High), "M" (Medium), or "L" (Low)
     """
+    if any(
+        type(v) is not int or not 1 <= v <= 10
+        for v in (severity, occurrence, detection)
+    ):
+        raise ValueError("S/O/D must be integers from 1 to 10")
     s, o, d = severity, occurrence, detection
 
-    # ── HIGH priority rules ──────────────────────────────────────────────
-    # Safety/regulatory severity always high
-    if s >= 9:
-        return "H"
-    # High severity with moderate-to-high occurrence
-    if s >= 7 and o >= 4:
-        return "H"
-    # Moderate severity with high occurrence and poor detection
-    if s >= 5 and o >= 4 and d >= 4:
-        return "H"
-    # High severity with high occurrence
-    if s >= 6 and o >= 6:
-        return "H"
-    # Very high occurrence with any meaningful severity
-    if s >= 4 and o >= 8:
-        return "H"
-    # High severity (7-8) with moderate occurrence and poor detection
-    if s >= 7 and o >= 2 and d >= 7:
-        return "H"
+    # S = 9-10
+    if 9 <= s <= 10:
+        if 8 <= o <= 10:
+            return "H"
+        elif 6 <= o <= 7:
+            return "H"
+        elif 4 <= o <= 5:
+            if d == 1:
+                return "M"
+            return "H"
+        elif 2 <= o <= 3:
+            if d >= 7:
+                return "H"
+            return "M"
+        elif o == 1:
+            if d >= 7:
+                return "H"
+            if 5 <= d <= 6:
+                return "M"
+            return "L"
 
-    # ── LOW priority rules ───────────────────────────────────────────────
-    # Very low severity
-    if s <= 2:
-        return "L"
-    # Low severity and low occurrence
-    if s <= 3 and o <= 3:
-        return "L"
-    # Low severity, low occurrence, good detection
-    if s <= 4 and o <= 3 and d <= 3:
-        return "L"
-    # Minimal risk combination
-    if s <= 5 and o <= 2 and d <= 2:
+    # S = 7-8
+    elif 7 <= s <= 8:
+        if 8 <= o <= 10:
+            return "H"
+        elif 6 <= o <= 7:
+            if d == 1:
+                return "M"
+            return "H"
+        elif 4 <= o <= 5:
+            if d >= 5:
+                return "H"
+            return "M"
+        elif 2 <= o <= 3:
+            if d >= 5:
+                return "M"
+            return "L"
+        elif o == 1:
+            if d >= 7:
+                return "M"
+            return "L"
+
+    # S = 4-6
+    elif 4 <= s <= 6:
+        if 8 <= o <= 10:
+            if d == 1:
+                return "M"
+            return "H"
+        elif 6 <= o <= 7:
+            if d >= 5:
+                return "H"
+            return "M"
+        elif 4 <= o <= 5:
+            if d >= 7:
+                return "H"
+            if 5 <= d <= 6:
+                return "M"
+            if 2 <= d <= 4:
+                return "M"
+            return "L"
+        elif 2 <= o <= 3:
+            if d >= 5:
+                return "M"
+            return "L"
+        elif o == 1:
+            if d >= 7:
+                return "M"
+            return "L"
+
+    # S = 2-3
+    elif 2 <= s <= 3:
+        if 8 <= o <= 10:
+            if d == 1:
+                return "L"
+            return "M"
+        elif 6 <= o <= 7:
+            if d >= 5:
+                return "M"
+            return "L"
+        elif 4 <= o <= 5:
+            if d >= 7:
+                return "M"
+            return "L"
+        elif 2 <= o <= 3:
+            return "L"
+        elif o == 1:
+            return "L"
+
+    # S = 1
+    elif s == 1:
         return "L"
 
-    # ── MEDIUM (everything else) ─────────────────────────────────────────
     return "M"
 
 
 # ============================================================================
 # Internal Helpers
 # ============================================================================
+
 
 async def _get_pfmea_or_404(
     db: AsyncSession, pfmea_id: int, *, load_rows: bool = False
@@ -119,9 +179,18 @@ async def _get_pfmea_or_404(
         selectinload(PfmeaHeader.team_members).selectinload(PfmeaTeamMember.user),
     ]
     if load_rows:
-        options.append(selectinload(PfmeaHeader.worksheet_rows))
+        options.append(
+            selectinload(PfmeaHeader.worksheet_rows).selectinload(
+                PfmeaWorksheetRow.responsible_person
+            )
+        )
 
-    stmt = select(PfmeaHeader).options(*options).where(PfmeaHeader.id == pfmea_id)
+    stmt = (
+        select(PfmeaHeader)
+        .options(*options)
+        .where(PfmeaHeader.id == pfmea_id)
+        .execution_options(populate_existing=True)
+    )
     result = await db.execute(stmt)
     pfmea = result.scalars().first()
     if pfmea is None:
@@ -154,13 +223,9 @@ async def _generate_hierarchical_id(
 
     year = datetime.now(timezone.utc).year
 
-    # Get next sequence number for this plant
-    result = await db.execute(
-        select(func.count(PfmeaHeader.id)).where(PfmeaHeader.plant_id == plant_id)
-    )
-    seq = (result.scalar() or 0) + 1
+    from uuid import uuid4
 
-    return f"{plant_code}_PFMEA_{seq:03d}_{year}_{version}"
+    return f"{plant_code}_PFMEA_{uuid4().hex[:16].upper()}_{year}_{version}"
 
 
 async def _log_audit(
@@ -194,6 +259,7 @@ async def _log_audit(
 # CRUD — PFMEA Header (Step 1)
 # ============================================================================
 
+
 async def create_pfmea_analysis(
     db: AsyncSession,
     payload: PfmeaHeaderCreate,
@@ -213,14 +279,16 @@ async def create_pfmea_analysis(
             detail=f"Flowchart with id {payload.flowchart_id} not found.",
         )
 
+    if flowchart.status != "Approved":
+        raise HTTPException(400, "PFMEA requires an approved flowchart")
     plant_id = flowchart.plant_id
-    
+
     # Sync metadata from Flowchart/Product if not explicitly provided in payload
     # For UI homologation, we want to copy the flowchart's context to PFMEA
     synced_customer = payload.customer
     synced_part_number = payload.part_number
     synced_project_name = payload.project_name
-    
+
     if flowchart.product:
         if not synced_customer and flowchart.product.customer_name:
             synced_customer = flowchart.product.customer_name
@@ -254,21 +322,41 @@ async def create_pfmea_analysis(
 
     # Add team members (always include the creator as PFMEA Owner)
     creator_in_team = False
+    from app.models import User
+    from app.models.auth_session import UserPlant
+
     for tm in payload.team_members:
+        candidate = await db.get(User, tm.user_id)
+        assignment = await db.get(UserPlant, (tm.user_id, plant_id))
+        if (
+            not candidate
+            or not candidate.is_active
+            or candidate.deleted_at is not None
+            or (tm.user_id != current_user_id and assignment is None)
+        ):
+            raise HTTPException(
+                400, "Team members must be active and assigned to this plant"
+            )
         if tm.user_id == current_user_id:
             creator_in_team = True
-        db.add(PfmeaTeamMember(
-            pfmea_id=pfmea.id,
-            user_id=tm.user_id,
-            role_in_team=tm.role_in_team,
-        ))
+        db.add(
+            PfmeaTeamMember(
+                pfmea_id=pfmea.id,
+                user_id=tm.user_id,
+                role_in_team="PFMEA Owner"
+                if tm.user_id == current_user_id
+                else tm.role_in_team,
+            )
+        )
 
     if not creator_in_team:
-        db.add(PfmeaTeamMember(
-            pfmea_id=pfmea.id,
-            user_id=current_user_id,
-            role_in_team="PFMEA Owner",
-        ))
+        db.add(
+            PfmeaTeamMember(
+                pfmea_id=pfmea.id,
+                user_id=current_user_id,
+                role_in_team="PFMEA Owner",
+            )
+        )
 
     await db.flush()
 
@@ -303,7 +391,9 @@ async def list_pfmea_analyses(
     """Return a paginated list of PFMEA analyses (without rows for performance)."""
     stmt = (
         select(PfmeaHeader)
-        .options(selectinload(PfmeaHeader.team_members).selectinload(PfmeaTeamMember.user))
+        .options(
+            selectinload(PfmeaHeader.team_members).selectinload(PfmeaTeamMember.user)
+        )
         .order_by(PfmeaHeader.id.desc())
         .offset(skip)
         .limit(limit)
@@ -330,6 +420,14 @@ async def update_pfmea_header(
     _check_immutability(pfmea)
 
     update_data = payload.model_dump(exclude_unset=True)
+    for controlled in ("plant_id", "version"):
+        if controlled in update_data and update_data[controlled] != getattr(
+            pfmea, controlled
+        ):
+            raise HTTPException(
+                400, "Plant and revision are controlled by document lifecycle"
+            )
+        update_data.pop(controlled, None)
     for field, new_val in update_data.items():
         old_val = getattr(pfmea, field, None)
         if old_val != new_val:
@@ -355,6 +453,7 @@ async def update_pfmea_header(
 # Team Management
 # ============================================================================
 
+
 async def add_team_member(
     db: AsyncSession,
     pfmea_id: int,
@@ -365,6 +464,19 @@ async def add_team_member(
     pfmea = await _get_pfmea_or_404(db, pfmea_id)
     _check_immutability(pfmea)
 
+    from app.models.user import User
+    from app.models.auth_session import UserPlant
+
+    candidate = await db.get(User, payload.user_id)
+    assignment = (
+        await db.get(UserPlant, (payload.user_id, pfmea.plant_id))
+        if pfmea.plant_id
+        else None
+    )
+    if not candidate or not candidate.is_active or assignment is None:
+        raise HTTPException(
+            400, "Team members must be active and assigned to this plant"
+        )
     member = PfmeaTeamMember(
         pfmea_id=pfmea_id,
         user_id=payload.user_id,
@@ -390,7 +502,11 @@ async def add_team_member(
         user_id=current_user_id,
         new_value=f"user_id={payload.user_id}, role={payload.role_in_team}",
     )
-    stmt = select(PfmeaTeamMember).options(selectinload(PfmeaTeamMember.user)).where(PfmeaTeamMember.id == member.id)
+    stmt = (
+        select(PfmeaTeamMember)
+        .options(selectinload(PfmeaTeamMember.user))
+        .where(PfmeaTeamMember.id == member.id)
+    )
     result = await db.execute(stmt)
     return result.scalars().first()
 
@@ -435,6 +551,7 @@ async def remove_team_member(
 # Flowchart → Worksheet Synchronisation
 # ============================================================================
 
+
 async def sync_worksheet_from_flowchart(
     db: AsyncSession,
     pfmea_id: int,
@@ -462,7 +579,7 @@ async def sync_worksheet_from_flowchart(
             joinedload(FlowchartStep.machinery),
         )
         .where(FlowchartStep.flowchart_id == pfmea.flowchart_id)
-        .order_by(FlowchartStep.step_number)
+        .order_by(FlowchartStep.step_number, FlowchartStep.sub_step)
     )
     steps = list(fc_result.unique().scalars().all())
 
@@ -482,22 +599,53 @@ async def sync_worksheet_from_flowchart(
     for idx, step in enumerate(steps):
         # Build structure-analysis fields from step
         tech_name = step.technology.name if step.technology else None
-        machinery_name = None
-        if step.machinery:
-            machinery_name = step.machinery.machinery_name if hasattr(step.machinery, "machinery_name") else None
+        step_label = (
+            f"{step.step_number}.{step.sub_step}"
+            if step.sub_step > 0
+            else f"{step.step_number}"
+        )
 
-        station_name = f"Step {step.step_number}"
+        station_name = f"Step {step_label}"
         if step.responsible_department:
-            station_name = f"{step.responsible_department} - Step {step.step_number}"
+            station_name = f"{step.responsible_department} - Step {step_label}"
 
-        operation_desc = f"{station_name} - {tech_name}" if tech_name else station_name
+        desc_label = step.custom_description or tech_name
+        operation_desc = (
+            f"{station_name} - {desc_label}" if desc_label else station_name
+        )
+
+        # Merge product_characteristics and target for default PROCESS FUNCTION REQUIREMENTS
+        merged_req_parts = []
+        if step.product_characteristics and step.product_characteristics.strip():
+            merged_req_parts.append(f"- {step.product_characteristics.strip()}")
+        if step.target and step.target.strip():
+            merged_req_parts.append(step.target.strip())
+        default_func_req = "\n".join(merged_req_parts) if merged_req_parts else None
 
         if step.id in existing_map:
-            # Update existing rows with fresh structure data
+            # Update existing rows with fresh structure data without overwriting custom user inputs
             for existing_row in existing_map[step.id]:
-                existing_row.process_item_name = pfmea.part_number or existing_row.process_item_name
+                existing_row.process_item_name = (
+                    pfmea.part_number or existing_row.process_item_name
+                )
                 existing_row.station_operation = operation_desc
                 existing_row.operation_type = step.symbol_type
+                if (
+                    not existing_row.function_process_step
+                    or not existing_row.function_process_step.strip()
+                ):
+                    if default_func_req:
+                        existing_row.function_process_step = default_func_req
+                if (
+                    not existing_row.product_characteristic
+                    or not existing_row.product_characteristic.strip()
+                ):
+                    existing_row.product_characteristic = step.product_characteristics
+                if (
+                    not existing_row.process_characteristic
+                    or not existing_row.process_characteristic.strip()
+                ):
+                    existing_row.process_characteristic = step.process_characteristics
                 db.add(existing_row)
         else:
             # Create new row
@@ -507,6 +655,9 @@ async def sync_worksheet_from_flowchart(
                 process_item_name=pfmea.part_number,
                 station_operation=operation_desc,
                 operation_type=step.symbol_type,
+                function_process_step=default_func_req,
+                product_characteristic=step.product_characteristics,
+                process_characteristic=step.process_characteristics,
                 sequence_order=(idx + 1) * 10,
             )
             db.add(new_row)
@@ -533,6 +684,7 @@ async def sync_worksheet_from_flowchart(
 # Worksheet Row CRUD (Steps 2–6)
 # ============================================================================
 
+
 async def get_worksheet_rows(
     db: AsyncSession, pfmea_id: int
 ) -> list[PfmeaWorksheetRow]:
@@ -540,6 +692,7 @@ async def get_worksheet_rows(
     await _get_pfmea_or_404(db, pfmea_id)  # Validate existence
     result = await db.execute(
         select(PfmeaWorksheetRow)
+        .options(selectinload(PfmeaWorksheetRow.responsible_person))
         .where(PfmeaWorksheetRow.pfmea_id == pfmea_id)
         .order_by(PfmeaWorksheetRow.sequence_order)
     )
@@ -557,6 +710,9 @@ async def create_worksheet_row(
     _check_immutability(pfmea)
 
     data = payload.model_dump(exclude_unset=True)
+    await _validate_row_references(db, pfmea, data)
+    if data.get("action_status") == "Completed":
+        raise HTTPException(400, "Use action confirmation")
     data["pfmea_id"] = pfmea_id
 
     # Auto-calculate AP if S, O, D are all provided
@@ -565,7 +721,11 @@ async def create_worksheet_row(
         data["action_priority"] = calculate_action_priority(s, o, d)
 
     # Auto-calculate new AP if new S, O, D are provided
-    ns, no, nd = data.get("new_severity"), data.get("new_occurrence"), data.get("new_detection")
+    ns, no, nd = (
+        data.get("new_severity"),
+        data.get("new_occurrence"),
+        data.get("new_detection"),
+    )
     if ns is not None and no is not None and nd is not None:
         data["new_action_priority"] = calculate_action_priority(ns, no, nd)
 
@@ -611,6 +771,9 @@ async def update_worksheet_row(
         )
 
     update_data = payload.model_dump(exclude_unset=True)
+    await _validate_row_references(db, pfmea, update_data)
+    if update_data.get("action_status") == "Completed":
+        raise HTTPException(400, "Use action confirmation")
     for field, new_val in update_data.items():
         old_val = getattr(row, field, None)
         if old_val != new_val:
@@ -656,9 +819,25 @@ async def update_worksheet_row(
         if row.new_action_priority != new_new_ap:
             row.new_action_priority = new_new_ap
 
+    _invalidate_action_validation(row)
+
     db.add(row)
     await db.flush()
     await db.refresh(row)
+
+    # Check if Control Plan exists and if we should sync
+    from app.services.control_plan_service import (
+        get_control_plan_by_pfmea,
+        sync_critical_items,
+    )
+
+    cp = await get_control_plan_by_pfmea(db, pfmea_id)
+    if cp:
+        if cp.status in {"Approved", "Archived"}:
+            cp.needs_review = True
+        else:
+            await sync_critical_items(db, cp.id, current_user_id)
+
     return row
 
 
@@ -667,6 +846,7 @@ async def update_worksheet_bulk(
     pfmea_id: int,
     payloads: list[WorksheetRowUpdate],
     current_user_id: int,
+    deleted_row_ids: list[int] | None = None,
 ) -> list[PfmeaWorksheetRow]:
     """Bulk update or create multiple worksheet rows."""
     pfmea = await _get_pfmea_or_404(db, pfmea_id)
@@ -679,9 +859,11 @@ async def update_worksheet_bulk(
     existing_rows_map = {row.id: row for row in result.scalars().all()}
 
     # Identify rows to delete (exist in DB but not in payload)
-    payload_ids = {p.id for p in payloads if getattr(p, "id", None) and p.id > 0}
+    delete_ids = set(deleted_row_ids or [])
+    if not delete_ids.issubset(existing_rows_map):
+        raise HTTPException(400, "Deleted rows must belong to this document")
     for row_id, row in existing_rows_map.items():
-        if row_id not in payload_ids:
+        if row_id in delete_ids:
             await db.delete(row)
             await _log_audit(
                 db,
@@ -696,15 +878,31 @@ async def update_worksheet_bulk(
 
     for payload in payloads:
         data = payload.model_dump(exclude_unset=True)
+        await _validate_row_references(db, pfmea, data)
+        if data.get("action_status") == "Completed":
+            data.pop("action_status")
         # Drop the id from data if present to avoid updating primary key
         row_id = data.pop("id", None)
-        
+
         # Determine AP
         s, o, d = data.get("severity"), data.get("occurrence"), data.get("detection")
-        ns, no, nd = data.get("new_severity"), data.get("new_occurrence"), data.get("new_detection")
+        ns, no, nd = (
+            data.get("new_severity"),
+            data.get("new_occurrence"),
+            data.get("new_detection"),
+        )
 
+        if row_id and row_id > 0 and row_id not in existing_rows_map:
+            raise HTTPException(400, "Row does not belong to this document")
+        if row_id in delete_ids:
+            raise HTTPException(400, "Cannot update and delete the same row")
         if row_id and row_id in existing_rows_map:
             row = existing_rows_map[row_id]
+            evidence_changed = any(
+                getattr(row, k, None) != v
+                for k, v in data.items()
+                if k not in {"sequence_order", "action_status"}
+            )
             for field, new_val in data.items():
                 old_val = getattr(row, field, None)
                 if old_val != new_val:
@@ -726,12 +924,15 @@ async def update_worksheet_bulk(
                 new_ap = calculate_action_priority(rs, ro, rd)
                 if row.action_priority != new_ap:
                     row.action_priority = new_ap
-            
+
             rns, rno, rnd = row.new_severity, row.new_occurrence, row.new_detection
             if rns is not None and rno is not None and rnd is not None:
                 new_new_ap = calculate_action_priority(rns, rno, rnd)
                 if row.new_action_priority != new_new_ap:
                     row.new_action_priority = new_new_ap
+
+            if evidence_changed:
+                _invalidate_action_validation(row)
 
             db.add(row)
             updated_rows.append(row)
@@ -742,11 +943,15 @@ async def update_worksheet_bulk(
                 data["action_priority"] = calculate_action_priority(s, o, d)
             if ns is not None and no is not None and nd is not None:
                 data["new_action_priority"] = calculate_action_priority(ns, no, nd)
-            
+            if data.get("action_status") == "Completed":
+                raise HTTPException(400, "Use action confirmation")
+
             new_row = PfmeaWorksheetRow(**data)
             db.add(new_row)
-            await db.flush() # Need ID for log
-            await db.refresh(new_row) # Need created_at/updated_at for Pydantic response
+            await db.flush()  # Need ID for log
+            await db.refresh(
+                new_row
+            )  # Need created_at/updated_at for Pydantic response
             await _log_audit(
                 db,
                 pfmea_id=pfmea_id,
@@ -758,9 +963,25 @@ async def update_worksheet_bulk(
             updated_rows.append(new_row)
 
     await db.flush()
+
     for r in updated_rows:
         await db.refresh(r)
+
+    if updated_rows or delete_ids:
+        from app.services.control_plan_service import (
+            get_control_plan_by_pfmea,
+            sync_critical_items,
+        )
+
+        cp = await get_control_plan_by_pfmea(db, pfmea_id)
+        if cp:
+            if cp.status in {"Approved", "Archived"}:
+                cp.needs_review = True
+            else:
+                await sync_critical_items(db, cp.id, current_user_id)
+
     return updated_rows
+
 
 async def delete_worksheet_row(
     db: AsyncSession,
@@ -844,12 +1065,16 @@ async def transition_moc_status(
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Cannot submit for review: worksheet has no rows. "
-                       "Complete Steps 2-5 first.",
+                "Complete Steps 2-5 first.",
             )
         # Check that at least basic fields are filled
         incomplete_rows = [
-            r for r in pfmea.worksheet_rows
-            if not r.failure_mode or r.severity is None or r.occurrence is None or r.detection is None
+            r
+            for r in pfmea.worksheet_rows
+            if not r.failure_mode
+            or r.severity is None
+            or r.occurrence is None
+            or r.detection is None
         ]
         if incomplete_rows:
             raise HTTPException(
@@ -864,26 +1089,30 @@ async def transition_moc_status(
     # ── Gate: In Review → Approved ────────────────────────────
     if old_status == "In Review" and new_status == "Approved":
         high_risk_unresolved = [
-            r for r in pfmea.worksheet_rows
-            if r.action_priority == "H" and r.action_status != "Completed"
+            r
+            for r in pfmea.worksheet_rows
+            if (r.action_priority == "H" or (r.severity or 0) >= 9)
+            and not _action_is_validated(r)
         ]
         if high_risk_unresolved:
             raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
+                status_code=status.HTTP_400_BAD_REQUEST,
                 detail=(
-                    f"APPROVAL BLOCKED: {len(high_risk_unresolved)} rows with "
-                    f"High (H) Action Priority have not been resolved in Step 6 "
-                    f"(Optimization). All high-risk items must have action_status "
-                    f"= 'Completed' before approval."
+                    f"Aprobación bloqueada: {len(high_risk_unresolved)} fila(s) con Prioridad de Acción Alta (H) "
+                    f"no han sido resueltas en Optimización (Paso 6). Documente las acciones tomadas y nuevas calificaciones (S, O, D) "
+                    f"y solicite la validación explícita del Owner antes de aprobar."
                 ),
             )
 
+    if new_status == "Approved":
+        pfmea.needs_review = False
+        pfmea.revision_date = date.today()
     # Apply transition
     pfmea.moc_status = new_status
     pfmea.status = new_status  # Keep both fields in sync
-
     if new_status == "Approved":
-        pfmea.revision_date = date.today()
+        await db.flush()
+        await _snapshot_pfmea(db, pfmea, current_user_id, "Approved")
 
     db.add(pfmea)
     await db.flush()
@@ -907,6 +1136,7 @@ async def transition_moc_status(
 # Admin: Restore to Draft
 # ============================================================================
 
+
 async def restore_to_draft(
     db: AsyncSession, pfmea_id: int, current_user_id: int
 ) -> PfmeaHeader:
@@ -919,6 +1149,11 @@ async def restore_to_draft(
             detail="Can only restore Approved or Archived analyses.",
         )
 
+    await _snapshot_pfmea(db, pfmea, current_user_id, "Before reopening")
+    from app.models import ControlPlan
+    plan=(await db.scalars(select(ControlPlan).where(ControlPlan.pfmea_project_id==pfmea_id))).first()
+    if plan:
+        plan.needs_review=True
     old_status = pfmea.moc_status
     pfmea.moc_status = "Draft"
     pfmea.status = "Draft"
@@ -951,6 +1186,7 @@ async def restore_to_draft(
 # Audit Trail Query
 # ============================================================================
 
+
 async def get_pfmea_audit_log(
     db: AsyncSession,
     pfmea_id: int,
@@ -973,6 +1209,7 @@ async def get_pfmea_audit_log(
 # ============================================================================
 # My Tasks (Pending Actions for current user)
 # ============================================================================
+
 
 async def get_my_tasks(
     db: AsyncSession,
@@ -1028,6 +1265,147 @@ async def get_my_tasks(
 # AP Lookup Utility
 # ============================================================================
 
+
 def ap_lookup(severity: int, occurrence: int, detection: int) -> str:
     """Public utility: calculate AP for given S/O/D values."""
     return calculate_action_priority(severity, occurrence, detection)
+
+
+def _invalidate_action_validation(row):
+    if row.validated_by is not None:
+        row.validated_by = None
+        row.validated_at = None
+    if row.action_status == "Completed":
+        row.action_status = "In Progress"
+    if any(v is None for v in (row.severity, row.occurrence, row.detection)):
+        row.action_priority = None
+    if any(
+        v is None for v in (row.new_severity, row.new_occurrence, row.new_detection)
+    ):
+        row.new_action_priority = None
+
+
+def _action_is_validated(row):
+    return bool(
+        row.action_status == "Completed"
+        and row.validated_by
+        and row.validated_at
+        and row.actions_taken
+        and row.actions_taken.strip()
+        and row.responsible_person_id
+        and row.completion_date
+        and all(
+            v is not None
+            for v in (row.new_severity, row.new_occurrence, row.new_detection)
+        )
+    )
+
+
+async def confirm_action(db, pfmea_id, row_id, actor_id):
+    pfmea = await _get_pfmea_or_404(db, pfmea_id)
+    _check_immutability(pfmea)
+    row = (
+        await db.scalars(
+            select(PfmeaWorksheetRow).where(
+                PfmeaWorksheetRow.id == row_id, PfmeaWorksheetRow.pfmea_id == pfmea_id
+            )
+        )
+    ).first()
+    if not row:
+        raise HTTPException(404, "Row not found")
+    if not (
+        row.actions_taken
+        and row.actions_taken.strip()
+        and row.responsible_person_id
+        and row.completion_date
+        and all(
+            v is not None
+            for v in (row.new_severity, row.new_occurrence, row.new_detection)
+        )
+    ):
+        raise HTTPException(
+            400,
+            "Action evidence, responsible person, completion date and new S/O/D are required",
+        )
+    from app.models.user import User
+
+    person = await db.get(User, row.responsible_person_id)
+    membership = (
+        await db.scalars(
+            select(PfmeaTeamMember).where(
+                PfmeaTeamMember.pfmea_id == pfmea_id,
+                PfmeaTeamMember.user_id == row.responsible_person_id,
+            )
+        )
+    ).first()
+    if (
+        not person
+        or not person.is_active
+        or (not membership and pfmea.owner_id != person.id)
+    ):
+        raise HTTPException(400, "Responsible person must be an active project member")
+    if row.completion_date > date.today():
+        raise HTTPException(400, "Completion date cannot be in the future")
+    row.responsible_person = person
+    row.action_status = "Completed"
+    row.validated_by = actor_id
+    row.validated_at = datetime.now(timezone.utc)
+    await _log_audit(
+        db,
+        pfmea_id=pfmea_id,
+        entity_type="pfmea_worksheet_row",
+        entity_id=row.id,
+        action="ACTION_CONFIRMED",
+        user_id=actor_id,
+    )
+    await db.flush()
+    return row
+
+
+async def _snapshot_pfmea(db, pfmea, actor_id, reason):
+    from app.models.document_version import DocumentVersion
+    from app.schemas.pfmea import PfmeaHeaderDetailRead
+
+    detail = await _get_pfmea_or_404(db, pfmea.id, load_rows=True)
+    db.add(
+        DocumentVersion(
+            document_type="pfmea",
+            document_id=pfmea.id,
+            revision_number=pfmea.version,
+            change_reason=reason,
+            created_by=actor_id,
+            original_creation_date=pfmea.created_at,
+            snapshot_data=PfmeaHeaderDetailRead.model_validate(detail).model_dump(
+                mode="json"
+            ),
+            is_initial_revision=False,
+        )
+    )
+    await db.flush()
+
+
+async def _validate_row_references(db, pfmea, data):
+    if data.get("flowchart_step_id"):
+        step = await db.get(FlowchartStep, data["flowchart_step_id"])
+        if not step or step.flowchart_id != pfmea.flowchart_id:
+            raise HTTPException(400, "Operation must belong to the linked diagram")
+    if data.get("responsible_person_id"):
+        from app.models.user import User
+
+        person = await db.get(User, data["responsible_person_id"])
+        member = (
+            await db.scalars(
+                select(PfmeaTeamMember).where(
+                    PfmeaTeamMember.pfmea_id == pfmea.id,
+                    PfmeaTeamMember.user_id == data["responsible_person_id"],
+                )
+            )
+        ).first()
+        if (
+            not person
+            or not person.is_active
+            or (not member and pfmea.owner_id != person.id)
+        ):
+            raise HTTPException(
+                400, "Responsible person must be an active member of the project"
+            )

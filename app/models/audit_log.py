@@ -5,15 +5,22 @@ field_name, old_value, new_value) for PFMEA MOC audit trail.
 """
 
 from __future__ import annotations
-
 from datetime import datetime
 from typing import TYPE_CHECKING, Optional
-
-from sqlalchemy import BigInteger, ForeignKey, Index, String, Text, func, DateTime
+from sqlalchemy import (
+    Integer,
+    BigInteger,
+    ForeignKey,
+    Index,
+    String,
+    Text,
+    func,
+    DateTime,
+)
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
 from app.models.base import Base
+
 
 if TYPE_CHECKING:
     from app.models.user import User
@@ -30,7 +37,9 @@ class AuditLog(Base):
         Index("ix_audit_logs_entity", "entity_type", "entity_id"),
     )
 
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    id: Mapped[int] = mapped_column(
+        BigInteger().with_variant(Integer, "sqlite"), primary_key=True
+    )
 
     flowchart_id: Mapped[Optional[int]] = mapped_column(
         BigInteger, ForeignKey("flowcharts.id")
@@ -52,7 +61,9 @@ class AuditLog(Base):
     action_details: Mapped[Optional[str]] = mapped_column(String)
     previous_values: Mapped[Optional[dict]] = mapped_column(JSONB)
     new_values: Mapped[Optional[dict]] = mapped_column(JSONB)
-    performed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    performed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
 
     # Field-level audit granularity (added for PFMEA MOC tracking)
     entity_type: Mapped[Optional[str]] = mapped_column(

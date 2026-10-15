@@ -1,3 +1,8 @@
+import os
+
+os.environ["ENVIRONMENT"] = "testing"
+os.environ["RESEND_API_KEY"] = ""
+
 import pytest
 import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
@@ -20,28 +25,45 @@ engine = create_async_engine(
 )
 
 TestingSessionLocal = async_sessionmaker(
-    autocommit=False, autoflush=False, bind=engine, class_=AsyncSession
+    autocommit=False,
+    autoflush=False,
+    expire_on_commit=False,
+    bind=engine,
+    class_=AsyncSession,
 )
+
 
 async def override_get_db() -> AsyncGenerator[AsyncSession, None]:
     async with TestingSessionLocal() as session:
-        yield session
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
+
 
 # Override the database dependency
 app.dependency_overrides[get_db] = override_get_db
+
 
 @pytest_asyncio.fixture(scope="function", autouse=True)
 async def setup_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    from app.core.security import limiter
+
+    limiter._storage.reset()
     yield
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
+
 
 @pytest_asyncio.fixture
 async def db_session() -> AsyncGenerator[AsyncSession, None]:
     async with TestingSessionLocal() as session:
         yield session
+
 
 @pytest_asyncio.fixture
 async def client() -> AsyncGenerator[AsyncClient, None]:
@@ -49,28 +71,32 @@ async def client() -> AsyncGenerator[AsyncClient, None]:
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac
 
+
 @pytest_asyncio.fixture
 async def test_user(db_session: AsyncSession) -> User:
     # Create a test user with PFMEA Owner role
     user = User(id=1, email="owner@test.com", role_id=1, is_active=True)
     db_session.add(user)
-    
+
     # Create a viewer user
     viewer = User(id=2, email="viewer@test.com", role_id=2, is_active=True)
     db_session.add(viewer)
-    
+
     await db_session.commit()
     return user
+
 
 @pytest.fixture
 def valid_owner_token() -> str:
     # Role 1 = PFMEA Owner
     return create_access_token(subject="1", role_id="1")
 
+
 @pytest.fixture
 def valid_viewer_token() -> str:
     # Role 2 = Viewer
     return create_access_token(subject="2", role_id="2")
+
 
 @pytest.fixture
 def invalid_token() -> str:

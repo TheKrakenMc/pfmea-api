@@ -1,8 +1,6 @@
 from typing import List, Optional
-
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.db import get_db
 from app.schemas.technology_category import (
     TechnologyCategoryRead,
@@ -11,6 +9,7 @@ from app.schemas.technology_category import (
 )
 from app.services import technology_category_service
 from app.api.deps import RoleChecker, CurrentUser, get_current_user
+
 
 router = APIRouter(prefix="/technology-categories", tags=["Technology Categories"])
 
@@ -27,10 +26,14 @@ async def list_technology_categories(
     current_user: CurrentUser = Depends(get_current_user),
 ):
     """List technology categories."""
-    return await technology_category_service.list_categories(db, skip=skip, limit=limit, q=q)
+    return await technology_category_service.list_categories(
+        db, skip=skip, limit=limit, q=q
+    )
 
 
-@router.post("/", response_model=TechnologyCategoryRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/", response_model=TechnologyCategoryRead, status_code=status.HTTP_201_CREATED
+)
 async def create_technology_category(
     payload: TechnologyCategoryCreate,
     db: AsyncSession = Depends(get_db),

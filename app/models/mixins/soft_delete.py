@@ -6,10 +6,8 @@ callers never need to remember the correct set of field mutations.
 """
 
 from __future__ import annotations
-
 from datetime import datetime, timezone
 from typing import Optional
-
 from sqlalchemy import BigInteger, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 

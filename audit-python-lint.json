@@ -1,0 +1,177 @@
+[
+  {
+    "cell": null,
+    "code": "F841",
+    "end_location": {
+      "column": 23,
+      "row": 579
+    },
+    "filename": "C:\\Users\\antonio.tlaque\\Documents\\git\\pfmea\\pfmea-api\\app\\services\\notification.py",
+    "fix": {
+      "applicability": "unsafe",
+      "edits": [
+        {
+          "content": "",
+          "end_location": {
+            "column": 26,
+            "row": 579
+          },
+          "location": {
+            "column": 9,
+            "row": 579
+          }
+        }
+      ],
+      "message": "Remove assignment to unused variable `email_response`"
+    },
+    "location": {
+      "column": 9,
+      "row": 579
+    },
+    "message": "Local variable `email_response` is assigned to but never used",
+    "name": "unused-variable",
+    "noqa_row": 579,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/unused-variable"
+  },
+  {
+    "cell": null,
+    "code": "F841",
+    "end_location": {
+      "column": 24,
+      "row": 947
+    },
+    "filename": "C:\\Users\\antonio.tlaque\\Documents\\git\\pfmea\\pfmea-api\\app\\services\\pfmea_service.py",
+    "fix": {
+      "applicability": "unsafe",
+      "edits": [
+        {
+          "content": "pass",
+          "end_location": {
+            "column": 31,
+            "row": 947
+          },
+          "location": {
+            "column": 13,
+            "row": 947
+          }
+        }
+      ],
+      "message": "Remove assignment to unused variable `sync_needed`"
+    },
+    "location": {
+      "column": 13,
+      "row": 947
+    },
+    "message": "Local variable `sync_needed` is assigned to but never used",
+    "name": "unused-variable",
+    "noqa_row": 947,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/unused-variable"
+  },
+  {
+    "cell": null,
+    "code": "E712",
+    "end_location": {
+      "column": 78,
+      "row": 25
+    },
+    "filename": "C:\\Users\\antonio.tlaque\\Documents\\git\\pfmea\\pfmea-api\\scripts\\provision_admin.py",
+    "fix": {
+      "applicability": "unsafe",
+      "edits": [
+        {
+          "content": "Plant.is_active",
+          "end_location": {
+            "column": 78,
+            "row": 25
+          },
+          "location": {
+            "column": 55,
+            "row": 25
+          }
+        }
+      ],
+      "message": "Replace with `Plant.is_active`"
+    },
+    "location": {
+      "column": 55,
+      "row": 25
+    },
+    "message": "Avoid equality comparisons to `True`; use `Plant.is_active:` for truth checks",
+    "name": "true-false-comparison",
+    "noqa_row": 25,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/true-false-comparison"
+  },
+  {
+    "cell": null,
+    "code": "F841",
+    "end_location": {
+      "column": 9,
+      "row": 111
+    },
+    "filename": "C:\\Users\\antonio.tlaque\\Documents\\git\\pfmea\\pfmea-api\\tests\\test_audit_regressions.py",
+    "fix": {
+      "applicability": "unsafe",
+      "edits": [
+        {
+          "content": "",
+          "end_location": {
+            "column": 12,
+            "row": 111
+          },
+          "location": {
+            "column": 5,
+            "row": 111
+          }
+        }
+      ],
+      "message": "Remove assignment to unused variable `user`"
+    },
+    "location": {
+      "column": 5,
+      "row": 111
+    },
+    "message": "Local variable `user` is assigned to but never used",
+    "name": "unused-variable",
+    "noqa_row": 111,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/unused-variable"
+  },
+  {
+    "cell": null,
+    "code": "F841",
+    "end_location": {
+      "column": 10,
+      "row": 156
+    },
+    "filename": "C:\\Users\\antonio.tlaque\\Documents\\git\\pfmea\\pfmea-api\\tests\\test_audit_regressions.py",
+    "fix": {
+      "applicability": "unsafe",
+      "edits": [
+        {
+          "content": "",
+          "end_location": {
+            "column": 13,
+            "row": 156
+          },
+          "location": {
+            "column": 5,
+            "row": 156
+          }
+        }
+      ],
+      "message": "Remove assignment to unused variable `admin`"
+    },
+    "location": {
+      "column": 5,
+      "row": 156
+    },
+    "message": "Local variable `admin` is assigned to but never used",
+    "name": "unused-variable",
+    "noqa_row": 156,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/unused-variable"
+  }
+]

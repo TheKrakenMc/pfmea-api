@@ -1,0 +1,33 @@
+....................................................................     [100%]
+============================== warnings summary ===============================
+.venv\Lib\site-packages\slowapi\extension.py:720
+.venv\Lib\site-packages\slowapi\extension.py:720
+.venv\Lib\site-packages\slowapi\extension.py:720
+.venv\Lib\site-packages\slowapi\extension.py:720
+.venv\Lib\site-packages\slowapi\extension.py:720
+  C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\.venv\Lib\site-packages\slowapi\extension.py:720: DeprecationWarning: 'asyncio.iscoroutinefunction' is deprecated and slated for removal in Python 3.16; use inspect.iscoroutinefunction() instead
+    if asyncio.iscoroutinefunction(func):
+
+app\schemas\measurement_unit.py:21
+  C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\app\schemas\measurement_unit.py:21: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class MeasurementUnit(MeasurementUnitBase):
+
+app\schemas\machinery.py:26
+  C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\app\schemas\machinery.py:26: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class MachineryRead(MachineryBase):
+
+app\schemas\plant.py:11
+  C:\Users\antonio.tlaque\Documents\git\pfmea\pfmea-api\app\schemas\plant.py:11: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class PlantRead(PlantBase):
+
+tests/test_action_priority.py: 45 warnings
+tests/test_audit_regressions.py: 4 warnings
+tests/test_auth.py: 5 warnings
+tests/test_document_lifecycle.py: 3 warnings
+tests/test_flowchart_characteristics.py: 3 warnings
+tests/test_integrity.py: 4 warnings
+tests/test_security.py: 4 warnings
+  <sys>:0: SAWarning: Can't sort tables for DROP; an unresolvable foreign key dependency exists between tables: departments, plants, regions, roles, users; and backend does not support ALTER.  To restore at least a partial sort, apply use_alter=True to ForeignKey and ForeignKeyConstraint objects involved in the cycle to mark these as known cycles that will be ignored.
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+68 passed, 76 warnings in 17.24s
